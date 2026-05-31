@@ -56,7 +56,7 @@ export function KidsSuccessCelebration() {
 
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('KidsBuddyHome')}
+            onPress={() => navigation.navigate('MysteryBox', { returnScreen: 'KidsBuddyHome' })}
           >
             <LinearGradient
               colors={['#c084fc', '#ec4899', '#fb7185']}

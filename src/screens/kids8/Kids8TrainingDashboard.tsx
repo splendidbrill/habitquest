@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView,
 } from 'react-native';
@@ -8,46 +8,37 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
 import { Trophy, Flame, Zap, TrendingUp, Award, Menu } from 'lucide-react-native';
+import { RecommendedMissions } from '../../components/RecommendedMissions';
+import { DailySpin, useDailySpin } from '../../components/DailySpin';
+import { ParentReactionBanner } from '../../components/ParentReactionBanner';
+import { useChild } from '../../context/ChildContext';
 
 export function Kids8TrainingDashboard() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [userName, setUserName] = useState('Athlete');
-  const [streak, setStreak] = useState(0);
-  const [xp, setXP] = useState(0);
-  const [level, setLevel] = useState('Rookie');
-  const [xpToNext, setXpToNext] = useState(50);
-  const [xpProgress, setXpProgress] = useState(0);
-  const [badgeCount, setBadgeCount] = useState(0);
+  const { activeChild, earnedBadges } = useChild();
+  const { showSpin, dismissSpin } = useDailySpin();
   const [favoriteAthlete, setFavoriteAthlete] = useState('');
 
   useEffect(() => {
-    storage.getItem('kids8UserName').then(v => { if (v) setUserName(v); });
     storage.getItem('kids8FavoriteAthlete').then(v => { if (v) setFavoriteAthlete(v); });
-    storage.getItem('kids8EarnedBadges').then(v => {
-      if (v) {
-        const badges = JSON.parse(v);
-        setBadgeCount(badges.length);
-      }
-    });
-    storage.getItem('kids8UserXP').then(v => {
-      const userXP = parseInt(v || '0');
-      setXP(userXP);
-      if (userXP >= 500) {
-        setLevel('All-Star'); setXpToNext(1000 - userXP);
-        setXpProgress(((userXP - 500) / 500) * 100);
-      } else if (userXP >= 200) {
-        setLevel('Pro'); setXpToNext(500 - userXP);
-        setXpProgress(((userXP - 200) / 300) * 100);
-      } else if (userXP >= 50) {
-        setLevel('Starter'); setXpToNext(200 - userXP);
-        setXpProgress(((userXP - 50) / 150) * 100);
-      } else {
-        setLevel('Rookie'); setXpToNext(50 - userXP);
-        setXpProgress((userXP / 50) * 100);
-      }
-    });
-    storage.getItem('kids8CurrentStreak').then(v => { if (v) setStreak(parseInt(v)); });
   }, []);
+
+  // Derive XP progress from Supabase data
+  const xp     = activeChild?.xp ?? 0;
+  const streak = activeChild?.streak ?? 0;
+  const userName = activeChild?.name ?? 'Athlete';
+  const badgeCount = earnedBadges.length;
+
+  let level = 'Rookie', xpToNext = 50, xpProgress = 0;
+  if (xp >= 500) {
+    level = 'All-Star'; xpToNext = 1000 - xp; xpProgress = ((xp - 500) / 500) * 100;
+  } else if (xp >= 200) {
+    level = 'Pro'; xpToNext = 500 - xp; xpProgress = ((xp - 200) / 300) * 100;
+  } else if (xp >= 50) {
+    level = 'Starter'; xpToNext = 200 - xp; xpProgress = ((xp - 50) / 150) * 100;
+  } else {
+    xpToNext = 50 - xp; xpProgress = (xp / 50) * 100;
+  }
 
   const performanceActivities = [
     { id: 'runner', title: 'Stadium Sprint', subtitle: 'Endless runner challenge', icon: '🏃', colors: ['#2563eb', '#0891b2'] as [string,string], screen: 'Kids8RunnerChallenge' as keyof RootStackParamList, tag: 'GAME' },
@@ -65,6 +56,9 @@ export function Kids8TrainingDashboard() {
     { title: 'Trophy Cabinet', icon: <Trophy size={20} color="#60a5fa" />, screen: 'Kids8Achievements' },
     { title: 'Ask Coach', icon: <Award size={20} color="#60a5fa" />, screen: 'Kids8AskCoach' },
     { title: 'School Fuel', icon: <Zap size={20} color="#60a5fa" />, screen: 'Kids8SchoolFuel' },
+    { title: 'World Map', icon: <Trophy size={20} color="#60a5fa" />, screen: 'WorldMap' },
+    { title: 'Weekly Check-in', icon: <TrendingUp size={20} color="#60a5fa" />, screen: 'PillarCheckIn' },
+    { title: 'Family Challenges', icon: <Trophy size={20} color="#60a5fa" />, screen: 'KidsFamilyChallenges' },
   ];
 
   const nextLevelName = level === 'Rookie' ? 'Starter' : level === 'Starter' ? 'Pro' : level === 'Pro' ? 'All-Star' : 'Legend';
@@ -131,6 +125,9 @@ export function Kids8TrainingDashboard() {
             </View>
           ) : null}
 
+          {/* Recommended missions */}
+          <RecommendedMissions isDark={true} />
+
           {/* Performance Training */}
           <Text style={styles.sectionTitle}>🏋️ Performance Training</Text>
           {performanceActivities.map(activity => (
@@ -187,6 +184,8 @@ export function Kids8TrainingDashboard() {
             ))}
           </View>
         </ScrollView>
+        <DailySpin visible={showSpin} onClose={dismissSpin} />
+        <ParentReactionBanner />
       </SafeAreaView>
     </LinearGradient>
   );

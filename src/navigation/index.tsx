@@ -1,9 +1,25 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Calendar, TrendingUp, User } from 'lucide-react-native';
+import { useAuth } from '../context/AuthContext';
+import type { Pillar } from '../services/syncService';
+import { SignIn } from '../screens/auth/SignIn';
+import { SignUp } from '../screens/auth/SignUp';
+import { ProfileSelector } from '../screens/ProfileSelector';
+import { AddChild } from '../screens/AddChild';
+import { FamilyCode } from '../screens/FamilyCode';
+import { WorldMap } from '../screens/WorldMap';
+import { PillarCheckIn } from '../screens/PillarCheckIn';
+import { StreakMilestone } from '../screens/StreakMilestone';
+import { FamilyChallengesManager } from '../screens/FamilyChallengesManager';
+import { KidsFamilyChallenges } from '../screens/KidsFamilyChallenges';
+import { BarrierSolver } from '../screens/BarrierSolver';
+import { MysteryBox } from '../screens/MysteryBox';
+import { FamilyAdventureMap } from '../screens/FamilyAdventureMap';
+import { FamilyAdventureDetail } from '../screens/FamilyAdventureDetail';
 
 import { Welcome } from '../screens/Welcome';
 import { Onboarding } from '../screens/Onboarding';
@@ -94,6 +110,19 @@ import { Kids8TrainLikePro } from '../screens/kids8/Kids8TrainLikePro';
 import { colors } from '../theme';
 
 export type RootStackParamList = {
+  // Auth-gated entry
+  ProfileSelector: undefined;
+  AddChild: undefined;
+  FamilyCode: undefined;
+  WorldMap: undefined;
+  PillarCheckIn: undefined;
+  StreakMilestone: { milestone: number };
+  FamilyChallengesManager: undefined;
+  KidsFamilyChallenges: undefined;
+  BarrierSolver: { childName: string; pillar: Pillar };
+  MysteryBox: { returnScreen: string };
+  FamilyAdventureMap: { parentId?: string };
+  FamilyAdventureDetail: { adventureDbId: string; stageIndex: number; parentId: string };
   // Entry
   RoleSelection: undefined;
   AgeGroup: undefined;
@@ -187,9 +216,24 @@ export type ParentStackParamList = {
   ParentDashboard: undefined;
 };
 
+export type AuthStackParamList = {
+  SignIn: undefined;
+  SignUp: undefined;
+};
+
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 const ParentStack = createNativeStackNavigator<ParentStackParamList>();
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="SignIn" component={SignIn} />
+      <AuthStack.Screen name="SignUp" component={SignUp} />
+    </AuthStack.Navigator>
+  );
+}
 
 function ParentTabStack() {
   return (
@@ -247,8 +291,35 @@ function MainTabs() {
 }
 
 export function AppNavigator() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <AuthNavigator />;
+  }
+
   return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }} initialRouteName="RoleSelection">
+    <RootStack.Navigator screenOptions={{ headerShown: false }} initialRouteName="ProfileSelector">
+      {/* Profile selection — first screen after auth */}
+      <RootStack.Screen name="ProfileSelector" component={ProfileSelector} />
+      <RootStack.Screen name="AddChild" component={AddChild} />
+      <RootStack.Screen name="FamilyCode" component={FamilyCode} />
+      <RootStack.Screen name="WorldMap" component={WorldMap} />
+      <RootStack.Screen name="PillarCheckIn" component={PillarCheckIn} />
+      <RootStack.Screen name="StreakMilestone" component={StreakMilestone} />
+      <RootStack.Screen name="FamilyChallengesManager" component={FamilyChallengesManager} />
+      <RootStack.Screen name="KidsFamilyChallenges" component={KidsFamilyChallenges} />
+      <RootStack.Screen name="BarrierSolver" component={BarrierSolver} />
+      <RootStack.Screen name="MysteryBox" component={MysteryBox} />
+      <RootStack.Screen name="FamilyAdventureMap" component={FamilyAdventureMap} />
+      <RootStack.Screen name="FamilyAdventureDetail" component={FamilyAdventureDetail} />
       {/* Entry point */}
       <RootStack.Screen name="RoleSelection" component={RoleSelection} />
       <RootStack.Screen name="AgeGroup" component={AgeGroup} />

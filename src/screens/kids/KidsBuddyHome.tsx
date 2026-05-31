@@ -12,17 +12,38 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
+import { useChild } from '../../context/ChildContext';
+import { getBuddyMood, checkAndGrantWeeklyFreeze, loadFreezeStatus } from '../../services/streakService';
+import { RecommendedMissions } from '../../components/RecommendedMissions';
+import { DailySpin, useDailySpin } from '../../components/DailySpin';
+import { ParentReactionBanner } from '../../components/ParentReactionBanner';
 
 const buddyEmojis: Record<string, string> = {
   lion: '🦁', tiger: '🐯', elephant: '🐘', monkey: '🐵',
 };
 
+const MOOD_EMOJI: Record<string, string> = {
+  happy:   '',       // use normal buddy emoji
+  worried: '😟',
+  sad:     '😢',
+};
+
+const MOOD_MESSAGE: Record<string, string> = {
+  happy:   '',
+  worried: 'Your buddy misses you! Come back today to keep your streak! 🔥',
+  sad:     'Your buddy is sad… Your streak broke. Start a new one today! 💪',
+};
+
 export function KidsBuddyHome() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { activeChild } = useChild();
   const [buddyName, setBuddyName] = useState('Explorer');
   const [selectedBuddy, setSelectedBuddy] = useState('tiger');
   const [missionDone, setMissionDone] = useState(false);
   const [greetingTime, setGreetingTime] = useState('Hello');
+  const [buddyMood, setBuddyMood] = useState<'happy' | 'worried' | 'sad'>('happy');
+  const [freezesAvailable, setFreezesAvailable] = useState(0);
+  const { showSpin, dismissSpin } = useDailySpin();
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -33,9 +54,16 @@ export function KidsBuddyHome() {
     storage.getItem('kidsBuddyName').then(v => { if (v) setBuddyName(v); });
     storage.getItem('kidsSelectedBuddy').then(v => { if (v) setSelectedBuddy(v); });
     storage.getItem('kidsMissionCompleted').then(v => { setMissionDone(v === 'true'); });
-  }, []);
 
-  const emoji = buddyEmojis[selectedBuddy] ?? '🦁';
+    if (activeChild?.id) {
+      checkAndGrantWeeklyFreeze(activeChild.id);
+      getBuddyMood(activeChild.id).then(setBuddyMood);
+      loadFreezeStatus(activeChild.id).then(s => setFreezesAvailable(s.freezesAvailable));
+    }
+  }, [activeChild?.id]);
+
+  const baseEmoji = buddyEmojis[selectedBuddy] ?? '🦁';
+  const emoji = buddyMood !== 'happy' ? MOOD_EMOJI[buddyMood] : baseEmoji;
 
   const navBtn = (
     emoji: string, title: string, desc: string, colors: [string, string], screen: keyof RootStackParamList
@@ -59,6 +87,28 @@ export function KidsBuddyHome() {
           <Text style={styles.buddyEmoji}>{emoji}</Text>
           <Text style={styles.greeting}>{greetingTime} {buddyName}! 👋</Text>
           <Text style={styles.subGreet}>Ready for today's mission?</Text>
+
+          {/* Streak info row */}
+          <View style={styles.streakRow}>
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakBadgeText}>🔥 {activeChild?.streak ?? 0} day streak</Text>
+            </View>
+            {freezesAvailable > 0 && (
+              <View style={styles.freezeBadge}>
+                <Text style={styles.freezeBadgeText}>🧊 {freezesAvailable} freeze</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Sad / worried buddy banner */}
+          {buddyMood !== 'happy' && (
+            <View style={[
+              styles.moodBanner,
+              buddyMood === 'sad' ? styles.moodBannerSad : styles.moodBannerWorried,
+            ]}>
+              <Text style={styles.moodBannerText}>{MOOD_MESSAGE[buddyMood]}</Text>
+            </View>
+          )}
 
           {!missionDone ? (
             <TouchableOpacity
@@ -87,8 +137,14 @@ export function KidsBuddyHome() {
           {navBtn('⭐', 'My Rewards!', 'See your stars and badges', ['#c084fc', '#ec4899'], 'KidsRewardsScreen')}
           {navBtn('🎁', 'My Collection!', 'See all your cool items', ['#fbbf24', '#fb923c'], 'KidsCollectiblesViewer')}
           {navBtn('🗺️', 'Adventure Map', 'See how far you\'ve explored', ['#60a5fa', '#818cf8'], 'KidsProgressMap')}
+          <RecommendedMissions isDark={false} />
           {navBtn('🦸', 'My Buddy Status', 'Check your buddy\'s level', ['#a78bfa', '#818cf8'], 'KidsAvatarStatus')}
+          {navBtn('🗺️', 'My World Map', 'See your world grow!', ['#1e3a5f', '#3b82f6'], 'WorldMap')}
+          {navBtn('📊', 'Weekly Check-in', 'Update your world scores', ['#0d9488', '#0891b2'], 'PillarCheckIn')}
+          {navBtn('🤝', 'Family Challenges', 'Do them together, earn XP!', ['#1e3a5f', '#1d4ed8'], 'KidsFamilyChallenges')}
         </ScrollView>
+        <DailySpin visible={showSpin} onClose={dismissSpin} />
+        <ParentReactionBanner />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -146,4 +202,25 @@ const styles = StyleSheet.create({
   navEmoji: { fontSize: 60, marginBottom: 8 },
   navTitle: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 4 },
   navDesc: { fontSize: 16, color: 'rgba(255,255,255,0.9)' },
+  streakRow: {
+    flexDirection: 'row', gap: 10, marginBottom: 12, alignItems: 'center',
+  },
+  streakBadge: {
+    backgroundColor: '#fff', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 4, elevation: 2,
+  },
+  streakBadgeText: { fontSize: 15, fontWeight: '700', color: '#1f2937' },
+  freezeBadge: {
+    backgroundColor: '#e0f2fe', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  freezeBadgeText: { fontSize: 15, fontWeight: '700', color: '#0369a1' },
+  moodBanner: {
+    width: '100%', borderRadius: 18, padding: 14, marginBottom: 16,
+  },
+  moodBannerWorried: { backgroundColor: '#fef9c3', borderWidth: 1, borderColor: '#fbbf24' },
+  moodBannerSad: { backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' },
+  moodBannerText: { fontSize: 15, fontWeight: '600', color: '#374151', textAlign: 'center', lineHeight: 22 },
 });

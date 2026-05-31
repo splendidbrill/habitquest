@@ -22,6 +22,11 @@ DerivedData
 *.xcuserstate
 **/.xcode.env.local
 
+# Environment variables — never commit API keys
+.env
+.env.local
+.env.*.local
+
 # Android/IntelliJ
 #
 build/

@@ -8,6 +8,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
 import { ChevronRight, Menu, User, TrendingUp, Flame } from 'lucide-react-native';
+import { RecommendedMissions } from '../../components/RecommendedMissions';
+import { DailySpin, useDailySpin } from '../../components/DailySpin';
+import { ParentReactionBanner } from '../../components/ParentReactionBanner';
+import { useChild } from '../../context/ChildContext';
 
 const greetings = ['What\'s up', 'Hey', 'Welcome back', 'Good to see you'];
 
@@ -52,25 +56,21 @@ const dailySuggestions = [
 
 export function Kids12Today() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { activeChild } = useChild();
   const [showMenu, setShowMenu] = useState(false);
   const [greeting] = useState(greetings[Math.floor(Math.random() * greetings.length)]);
   const [todaySuggestion] = useState(
     dailySuggestions[Math.floor(Math.random() * dailySuggestions.length)]
   );
-  const [playerXP, setPlayerXP] = useState(0);
-  const [playerLevel, setPlayerLevel] = useState(1);
-  const [currentStreak, setCurrentStreak] = useState(0);
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+  const { showSpin, dismissSpin } = useDailySpin();
+
+  // XP and streak come from Supabase via context — safe across devices
+  const playerXP      = activeChild?.xp ?? 0;
+  const playerLevel   = Math.floor(playerXP / 100) + 1;
+  const currentStreak = activeChild?.streak ?? 0;
 
   useEffect(() => {
-    storage.getItem('kids12PlayerXP').then(v => {
-      const xp = parseInt(v || '0');
-      setPlayerXP(xp);
-      setPlayerLevel(Math.floor(xp / 100) + 1);
-    });
-    storage.getItem('kids12CurrentStreak').then(v => {
-      setCurrentStreak(parseInt(v || '0'));
-    });
     storage.getItem('kids12LastCheckIn').then(v => {
       setHasCheckedInToday(v === new Date().toDateString());
     });
@@ -84,6 +84,9 @@ export function Kids12Today() {
 
   const menuItems = [
     { section: 'Your Space', items: [
+      { label: '🗺️ World Map', screen: 'WorldMap' as keyof RootStackParamList },
+      { label: '📊 Weekly Check-in', screen: 'PillarCheckIn' as keyof RootStackParamList },
+      { label: '🤝 Family Challenges', screen: 'KidsFamilyChallenges' as keyof RootStackParamList },
       { label: 'Profile & Identity', screen: 'Kids12ProfileIdentity' as keyof RootStackParamList },
       { label: 'Weekly planner', screen: 'Kids12WeeklyPlanner' as keyof RootStackParamList },
       { label: 'Wellbeing tracker', screen: 'Kids12WellbeingTracker' as keyof RootStackParamList },
@@ -151,6 +154,9 @@ export function Kids12Today() {
             </View>
           )}
 
+          {/* Personalised recommendations */}
+          <RecommendedMissions isDark={true} />
+
           {/* Today's suggestion */}
           <Text style={styles.suggestionType}>{todaySuggestion.type}</Text>
           <TouchableOpacity
@@ -217,6 +223,9 @@ export function Kids12Today() {
             You're in control. Skip anything that doesn't fit today.
           </Text>
         </ScrollView>
+
+        <DailySpin visible={showSpin} onClose={dismissSpin} />
+        <ParentReactionBanner />
 
         {/* Menu Modal */}
         <Modal

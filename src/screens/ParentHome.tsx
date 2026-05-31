@@ -1,330 +1,521 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, Animated, StyleSheet,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  SafeAreaView, ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  Heart, Clock, Lightbulb, Sparkles, ChevronRight,
-  ShoppingCart, TrendingUp, Check,
-} from 'lucide-react-native';
+import Svg, { Circle } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { ProgressBar } from '../components/ui/ProgressBar';
-import { colors, typography, radius, withOpacity } from '../theme';
+import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AlertTriangle, Info, ChevronRight, Flame, Key } from 'lucide-react-native';
 import type { RootStackParamList } from '../navigation';
+import { useParentData, ChildSummary } from '../hooks/useParentData';
+import type { Pillar } from '../services/syncService';
+import { useCallback } from 'react';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const mealOptions = [
-  { id: '1', name: 'Vegetable Pasta', time: 15, cost: 3.0, ingredients: ['Pasta', 'Mixed vegetables', 'Tomato sauce', 'Garlic', 'Olive oil'] },
-  { id: '2', name: 'Chicken Wraps', time: 20, cost: 4.0, ingredients: ['Tortilla wraps', 'Chicken breast', 'Lettuce', 'Tomatoes', 'Mayo'] },
-  { id: '3', name: 'Bean Tacos', time: 15, cost: 2.0, ingredients: ['Taco shells', 'Black beans', 'Cheese', 'Salsa', 'Lettuce'] },
-];
-
-const shoppingList = [
-  { category: 'Fruit & Vegetables', items: ['Apples', 'Bananas', 'Carrots', 'Lettuce', 'Tomatoes'] },
-  { category: 'Dairy', items: ['Milk', 'Cheese', 'Yogurt', 'Butter'] },
-  { category: 'Grains', items: ['Wholegrain bread', 'Pasta', 'Rice', 'Oats'] },
-  { category: 'Proteins', items: ['Chicken breast', 'Eggs', 'Black beans', 'Lentils'] },
-];
-
-const healthySwaps = [
-  { from: 'Sugary cereal', to: 'Oats + fruit' },
-  { from: 'Crisps', to: 'Homemade popcorn' },
-  { from: 'Fizzy drinks', to: 'Fruit water' },
-];
-
-const lunchboxIdeas = ['Wholegrain sandwich', 'Apple slices', 'Yogurt pot', 'Carrot sticks', 'Water bottle'];
-
-const weeklyProgress = {
-  familyMeals: { completed: 6, total: 7 },
-  activityMissions: { completed: 8, total: 10 },
-  healthySwaps: { completed: 5, total: 7 },
+// ─── Pillar circle config ─────────────────────────────────────────────────────
+const PILLAR_CONFIG: Record<Pillar, { emoji: string; label: string; color: string }> = {
+  nutrition:  { emoji: '🥕', label: 'Nutrition',  color: '#22c55e' },
+  movement:   { emoji: '⚽', label: 'Movement',   color: '#f97316' },
+  sleep:      { emoji: '😴', label: 'Sleep',      color: '#8b5cf6' },
+  confidence: { emoji: '🧠', label: 'Confidence', color: '#ec4899' },
 };
 
-export function ParentHome() {
-  const navigation = useNavigation<Nav>();
-  const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
+function scoreColor(score: number): string {
+  if (score >= 70) return '#22c55e';
+  if (score >= 40) return '#f59e0b';
+  return '#ef4444';
+}
 
-  const chevronAnims = useRef(
-    mealOptions.reduce((acc, m) => {
-      acc[m.id] = new Animated.Value(0);
-      return acc;
-    }, {} as Record<string, Animated.Value>)
-  ).current;
-
-  const toggleMeal = (id: string) => {
-    const wasSelected = selectedMeal === id;
-    if (selectedMeal) {
-      Animated.spring(chevronAnims[selectedMeal], { toValue: 0, useNativeDriver: true }).start();
-    }
-    if (!wasSelected) {
-      Animated.spring(chevronAnims[id], { toValue: 1, useNativeDriver: true }).start();
-    }
-    setSelectedMeal(wasSelected ? null : id);
-  };
-
-  const totalItems = shoppingList.reduce((acc, c) => acc + c.items.length, 0);
+// ─── SVG progress circle ──────────────────────────────────────────────────────
+function PillarCircle({ pillar, score, isFocus }: { pillar: Pillar; score: number; isFocus: boolean }) {
+  const cfg = PILLAR_CONFIG[pillar];
+  const size = 80;
+  const strokeWidth = 7;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (score / 100) * circumference;
+  const color = scoreColor(score);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Parent Dashboard</Text>
-          <Text style={styles.subtitle}>Supporting you every step of the way</Text>
-        </View>
-        <View style={styles.avatarCircle}>
-          <Heart size={20} color={colors.primary} />
-        </View>
+    <View style={[s.pillarCircleWrap, isFocus && s.pillarCircleFocus]}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke="#e5e7eb" strokeWidth={strokeWidth} fill="none"
+        />
+        <Circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke={color} strokeWidth={strokeWidth} fill="none"
+          strokeDasharray={`${dash} ${circumference}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={s.pillarCircleInner}>
+        <Text style={s.pillarEmoji}>{cfg.emoji}</Text>
+        <Text style={[s.pillarScore, { color }]}>{score}</Text>
       </View>
+      <Text style={s.pillarLabel}>{cfg.label}</Text>
+      {isFocus && <View style={s.focusDot} />}
+    </View>
+  );
+}
 
-      {/* Daily Coaching Card */}
-      <LinearGradient
-        colors={[withOpacity(colors.primary, 0.1), withOpacity(colors.secondary, 0.1)]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.coachCard}
-      >
-        <View style={styles.coachRow}>
-          <View style={styles.sparkleCircle}>
-            <Sparkles size={24} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.coachMsg}>Small habits make big changes.</Text>
-            <Text style={styles.coachTip}>
-              <Text style={{ fontWeight: '600' }}>Today's tip:</Text> Children are more likely to try new foods if they see parents eating them.
+// ─── Child tab selector ───────────────────────────────────────────────────────
+function ChildTabs({ children, selected, onSelect }: {
+  children: ChildSummary[];
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabsScroll}>
+      <View style={s.tabs}>
+        {children.map(c => (
+          <TouchableOpacity
+            key={c.id}
+            onPress={() => onSelect(c.id)}
+            style={[s.tab, selected === c.id && s.tabActive]}
+          >
+            <Text style={[s.tabText, selected === c.id && s.tabTextActive]}>
+              {c.name}
             </Text>
-          </View>
-        </View>
-        <Button style={styles.coachBtn}>
-          <Text style={styles.coachBtnText}>Try this today</Text>
-        </Button>
-      </LinearGradient>
-
-      {/* Tonight's Meal Helper */}
-      <Card style={styles.card}>
-        <View style={styles.cardTitleRow}>
-          <Lightbulb size={18} color={colors.secondary} />
-          <Text style={styles.cardTitle}>What could we cook tonight?</Text>
-        </View>
-        <View style={styles.meals}>
-          {mealOptions.map(meal => {
-            const isOpen = selectedMeal === meal.id;
-            const chevronRotate = chevronAnims[meal.id].interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
-            return (
-              <Pressable key={meal.id} style={styles.mealRow} onPress={() => toggleMeal(meal.id)}>
-                <View style={styles.mealTop}>
-                  <Text style={styles.mealName}>{meal.name}</Text>
-                  <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-                    <ChevronRight size={16} color={colors.mutedForeground} />
-                  </Animated.View>
-                </View>
-                <View style={styles.mealMeta}>
-                  <View style={styles.mealMetaItem}>
-                    <Clock size={14} color={colors.mutedForeground} />
-                    <Text style={styles.mealMetaText}>{meal.time} min</Text>
-                  </View>
-                  <View style={styles.mealMetaItem}>
-                    <Text style={styles.mealMetaText}>£{meal.cost.toFixed(2)}</Text>
-                  </View>
-                </View>
-                {isOpen && (
-                  <View style={styles.mealExpand}>
-                    <Text style={styles.ingredLabel}>Ingredients:</Text>
-                    <View style={styles.ingredWrap}>
-                      {meal.ingredients.map((ing, i) => (
-                        <View key={i} style={styles.ingredChip}>
-                          <Text style={styles.ingredText}>{ing}</Text>
-                        </View>
-                      ))}
-                    </View>
-                    <Button variant="outline" size="sm" style={styles.addToListBtn}>
-                      <ShoppingCart size={14} color={colors.foreground} />
-                      <Text style={styles.addToListText}>Add ingredients to shopping list</Text>
-                    </Button>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </Card>
-
-      {/* Smart Shopping List */}
-      <Card style={styles.card}>
-        <View style={styles.shopHeader}>
-          <Text style={styles.cardTitle}>Smart Shopping List</Text>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.shopCount}>{totalItems} items</Text>
-            <Text style={styles.shopCost}>~£28.50</Text>
-          </View>
-        </View>
-        <View style={styles.shopCategories}>
-          {shoppingList.map((cat, i) => (
-            <View key={i} style={styles.shopCat}>
-              <Text style={styles.shopCatTitle}>{cat.category}</Text>
-              {cat.items.map((item, j) => (
-                <View key={j} style={styles.shopItem}>
-                  <View style={styles.shopCheckbox} />
-                  <Text style={styles.shopItemText}>{item}</Text>
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-
-        {/* Healthy swaps */}
-        <View style={styles.swapsBox}>
-          <View style={styles.swapsTitle}>
-            <TrendingUp size={14} color={colors.secondary} />
-            <Text style={styles.swapsTitleText}>Healthy swap suggestions</Text>
-          </View>
-          {healthySwaps.map((s, i) => (
-            <View key={i} style={styles.swapRow}>
-              <Text style={styles.swapFrom}>{s.from}</Text>
-              <Text style={styles.swapArrow}>→</Text>
-              <Text style={styles.swapTo}>{s.to}</Text>
-            </View>
-          ))}
-        </View>
-
-        <Button variant="outline" onPress={() => navigation.navigate('GroceryList')} style={styles.viewBtn}>
-          <ShoppingCart size={14} color={colors.foreground} />
-          <Text style={styles.viewBtnText}>View full shopping list</Text>
-        </Button>
-      </Card>
-
-      {/* Lunchbox Planner */}
-      <Card style={styles.card}>
-        <Text style={styles.cardTitle}>Lunchbox Planner</Text>
-        <View style={styles.lunchbox}>
-          <Text style={styles.lunchLabel}>Today's lunch idea:</Text>
-          {lunchboxIdeas.map((item, i) => (
-            <View key={i} style={styles.lunchRow}>
-              <Check size={14} color={colors.secondary} />
-              <Text style={styles.lunchText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-        <View style={styles.lunchTip}>
-          <Text style={styles.lunchTipText}>
-            <Text style={{ fontWeight: '600' }}>💡 Quick tip:</Text> Children often need to try foods 10–15 times before liking them. Keep offering without pressure!
-          </Text>
-        </View>
-      </Card>
-
-      {/* Weekly Family Progress */}
-      <Card style={styles.card}>
-        <Text style={styles.cardTitle}>Weekly Family Progress</Text>
-        <View style={styles.progressBars}>
-          <View>
-            <View style={styles.progressLabel}>
-              <Text style={styles.progressText}>Family meals cooked</Text>
-              <Text style={styles.progressValue}>{weeklyProgress.familyMeals.completed}/{weeklyProgress.familyMeals.total}</Text>
-            </View>
-            <ProgressBar value={weeklyProgress.familyMeals.completed} total={weeklyProgress.familyMeals.total} color={colors.primary} />
-          </View>
-          <View>
-            <View style={styles.progressLabel}>
-              <Text style={styles.progressText}>Activity missions completed</Text>
-              <Text style={styles.progressValue}>{weeklyProgress.activityMissions.completed}/{weeklyProgress.activityMissions.total}</Text>
-            </View>
-            <ProgressBar value={weeklyProgress.activityMissions.completed} total={weeklyProgress.activityMissions.total} color={colors.secondary} />
-          </View>
-          <View>
-            <View style={styles.progressLabel}>
-              <Text style={styles.progressText}>Healthy snack swaps</Text>
-              <Text style={styles.progressValue}>{weeklyProgress.healthySwaps.completed}/{weeklyProgress.healthySwaps.total}</Text>
-            </View>
-            <ProgressBar value={weeklyProgress.healthySwaps.completed} total={weeklyProgress.healthySwaps.total} color={colors.accentForeground} />
-          </View>
-        </View>
-        <View style={styles.progressFooter}>
-          <Text style={styles.progressFooterText}>
-            <Text style={{ fontWeight: '600', color: colors.primary }}>You're building great routines for your family.</Text> Keep going! 💪
-          </Text>
-        </View>
-        <Button variant="outline" onPress={() => navigation.navigate('WeeklyReport')} style={{ marginTop: 12 }}>
-          <Text style={styles.viewBtnText}>View full weekly report</Text>
-        </Button>
-      </Card>
-
-      {/* More tools */}
-      <Card style={[styles.card, { alignItems: 'center' }]}>
-        <Text style={styles.cardTitle}>Need more tools?</Text>
-        <Text style={styles.moreToolsDesc}>Access Quick Meal Mode, Budget Tracker, Photo Rewards, and more</Text>
-        <Button variant="outline" onPress={() => (navigation as any).navigate('ParentDashboard')}>
-          <Text style={styles.viewBtnText}>View all parent tools</Text>
-        </Button>
-      </Card>
-
-      <View style={{ height: 20 }} />
+          </TouchableOpacity>
+        ))}
+      </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingTop: 56 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { ...typography.h1 },
-  subtitle: { fontSize: 13, color: colors.mutedForeground },
-  avatarCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: withOpacity(colors.primary, 0.1), alignItems: 'center', justifyContent: 'center' },
-  coachCard: { borderRadius: radius, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: withOpacity(colors.primary, 0.2) },
-  coachRow: { flexDirection: 'row', gap: 16, marginBottom: 16, alignItems: 'flex-start' },
-  sparkleCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: withOpacity(colors.primary, 0.2), alignItems: 'center', justifyContent: 'center' },
-  coachMsg: { ...typography.h3, marginBottom: 6 },
-  coachTip: { fontSize: 13, color: colors.mutedForeground, lineHeight: 18 },
-  coachBtn: { backgroundColor: colors.primary },
-  coachBtnText: { color: colors.primaryForeground, fontWeight: '600', fontSize: 15 },
-  card: { padding: 20, marginBottom: 16 },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
-  cardTitle: { ...typography.h3, marginBottom: 0 },
-  meals: { gap: 10 },
-  mealRow: { borderWidth: 1, borderColor: colors.border, borderRadius: radius, padding: 16 },
-  mealTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  mealName: { ...typography.h4 },
-  mealMeta: { flexDirection: 'row', gap: 16 },
-  mealMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  mealMetaText: { fontSize: 13, color: colors.mutedForeground },
-  mealExpand: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  ingredLabel: { fontSize: 11, fontWeight: '600', color: colors.mutedForeground, marginBottom: 8 },
-  ingredWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  ingredChip: { backgroundColor: colors.accent, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  ingredText: { fontSize: 12, color: colors.accentForeground },
-  addToListBtn: { flexDirection: 'row', gap: 6 },
-  addToListText: { fontSize: 13, color: colors.foreground },
-  shopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  shopCount: { fontSize: 12, color: colors.mutedForeground },
-  shopCost: { fontSize: 14, fontWeight: '600', color: colors.primary },
-  shopCategories: { gap: 16, marginBottom: 16 },
-  shopCat: { gap: 8 },
-  shopCatTitle: { fontSize: 13, fontWeight: '600', color: colors.primary },
-  shopItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  shopCheckbox: { width: 16, height: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 3 },
-  shopItemText: { fontSize: 13, color: colors.mutedForeground },
-  swapsBox: { backgroundColor: withOpacity(colors.secondary, 0.1), borderRadius: radius, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: withOpacity(colors.secondary, 0.2) },
-  swapsTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  swapsTitleText: { ...typography.h4 },
-  swapRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  swapFrom: { fontSize: 13, color: colors.mutedForeground, textDecorationLine: 'line-through' },
-  swapArrow: { fontSize: 13, color: colors.mutedForeground },
-  swapTo: { fontSize: 13, fontWeight: '500', color: colors.secondary },
-  viewBtn: { flexDirection: 'row', gap: 6 },
-  viewBtnText: { fontSize: 14, color: colors.foreground },
-  lunchbox: { backgroundColor: withOpacity(colors.accent, 0.5), borderRadius: radius, padding: 16, marginBottom: 12 },
-  lunchLabel: { fontSize: 13, fontWeight: '500', marginBottom: 10, color: colors.foreground },
-  lunchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  lunchText: { fontSize: 13, color: colors.foreground },
-  lunchTip: { backgroundColor: colors.accent, borderRadius: radius, padding: 12 },
-  lunchTipText: { fontSize: 12, color: colors.accentForeground, lineHeight: 18 },
-  progressBars: { gap: 16, marginBottom: 16 },
-  progressLabel: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  progressText: { fontSize: 14, color: colors.foreground },
-  progressValue: { fontSize: 14, fontWeight: '500', color: colors.foreground },
-  progressFooter: { paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
-  progressFooterText: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center', lineHeight: 18 },
-  moreToolsDesc: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center', marginBottom: 12, marginTop: 6, lineHeight: 18 },
+// ─── Main component ───────────────────────────────────────────────────────────
+export function ParentHome() {
+  const navigation = useNavigation<Nav>();
+  const { children, journey, parentName, familyCode, loading, alerts, reload } = useParentData();
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+  useFocusEffect(useCallback(() => { reload(); }, [reload]));
+
+  const child = selectedChildId
+    ? children.find(c => c.id === selectedChildId)
+    : children[0];
+
+  if (loading) {
+    return (
+      <View style={s.centered}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
+    );
+  }
+
+  if (!children.length) {
+    return (
+      <View style={s.centered}>
+        <Text style={s.emptyEmoji}>👶</Text>
+        <Text style={s.emptyTitle}>No children yet</Text>
+        <Text style={s.emptySub}>Add a child profile to start tracking their progress</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddChild')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={['#f97316', '#fbbf24']} style={s.emptyBtn}>
+            <Text style={s.emptyBtnText}>Add Child Profile</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const pillars: Pillar[] = ['nutrition', 'movement', 'sleep', 'confidence'];
+  const focusPillar = journey?.focusPillar ?? 'nutrition';
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <ScrollView style={s.screen} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={s.header}>
+          <View>
+            <Text style={s.greeting}>
+              Good {getGreeting()}, {parentName.split(' ')[0] || 'there'} 👋
+            </Text>
+            <Text style={s.headerSub}>Family health dashboard</Text>
+          </View>
+          <TouchableOpacity
+            style={s.codeBtn}
+            onPress={() => navigation.navigate('FamilyCode')}
+          >
+            <Key size={14} color="#6b7280" />
+            <Text style={s.codeBtnText}>{familyCode}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Alerts */}
+        {alerts.length > 0 && (
+          <View style={s.alertsBox}>
+            {alerts.slice(0, 2).map((alert, i) => {
+              const isStreakRisk = alert.type === 'warning' && alert.message.includes('streak');
+              const alertChild = children.find(c => c.name === alert.childName);
+              return (
+                <TouchableOpacity
+                  key={i}
+                  activeOpacity={isStreakRisk ? 0.85 : 1}
+                  onPress={() => {
+                    if (isStreakRisk && alertChild) {
+                      navigation.navigate('BarrierSolver', {
+                        childName: alertChild.name,
+                        pillar: journey?.focusPillar ?? 'movement',
+                      });
+                    }
+                  }}
+                >
+                  <View style={[s.alertRow, alert.type === 'warning' ? s.alertWarning : s.alertInfo]}>
+                    {alert.type === 'warning'
+                      ? <AlertTriangle size={15} color="#d97706" />
+                      : <Info size={15} color="#3b82f6" />
+                    }
+                    <Text style={[s.alertText, alert.type === 'warning' ? s.alertTextWarning : s.alertTextInfo]}>
+                      {alert.message}
+                    </Text>
+                    {isStreakRisk && (
+                      <Text style={s.alertActionText}>Fix it →</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Child tabs */}
+        {children.length > 1 && (
+          <ChildTabs
+            children={children}
+            selected={selectedChildId ?? children[0].id}
+            onSelect={setSelectedChildId}
+          />
+        )}
+
+        {child && (
+          <>
+            {/* Child summary strip */}
+            <View style={s.childStrip}>
+              <View>
+                <Text style={s.childName}>{child.name}</Text>
+                <Text style={s.childMeta}>{child.level} · {child.xp} XP</Text>
+              </View>
+              <View style={s.streakBadge}>
+                <Flame size={14} color="#f97316" />
+                <Text style={s.streakText}>{child.streak} day streak</Text>
+              </View>
+            </View>
+
+            {/* Four pillar circles */}
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Health Pillars</Text>
+              <View style={s.pillarsRow}>
+                {pillars.map(p => (
+                  <PillarCircle
+                    key={p}
+                    pillar={p}
+                    score={child.pillarScores[p]}
+                    isFocus={p === focusPillar}
+                  />
+                ))}
+              </View>
+              <View style={s.focusNote}>
+                <Text style={s.focusNoteText}>
+                  🎯 This week's focus: <Text style={s.focusNoteStrong}>{PILLAR_CONFIG[focusPillar].label}</Text>
+                </Text>
+              </View>
+            </View>
+
+            {/* Check-in nudge */}
+            {!child.checkinDoneThisWeek && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('PillarCheckIn')}
+              >
+                <LinearGradient
+                  colors={['#fffbeb', '#fef3c7']}
+                  style={s.checkinNudge}
+                >
+                  <Text style={s.checkinNudgeEmoji}>📊</Text>
+                  <View style={s.checkinNudgeText}>
+                    <Text style={s.checkinNudgeTitle}>Weekly check-in needed</Text>
+                    <Text style={s.checkinNudgeSub}>Update {child.name}'s scores — takes 2 minutes</Text>
+                  </View>
+                  <ChevronRight size={18} color="#d97706" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Family Journey View */}
+            {journey && (
+              <View style={s.journeyCard}>
+                <LinearGradient colors={['#1e3a5f', '#3b82f6']} style={s.journeyHeader}>
+                  <View>
+                    <Text style={s.journeyPhaseLabel}>Phase {journey.phase}</Text>
+                    <Text style={s.journeyPhaseName}>{journey.phaseLabel}</Text>
+                  </View>
+                  <View style={s.journeyWeekBadge}>
+                    <Text style={s.journeyWeekText}>Week {journey.weekNumber}</Text>
+                  </View>
+                </LinearGradient>
+                <View style={s.journeyGoals}>
+                  <Text style={s.journeyGoalsTitle}>Phase goals</Text>
+                  {PHASE_GOALS[journey.phase].map((goal, i) => (
+                    <View key={i} style={s.goalRow}>
+                      <View style={s.goalDot} />
+                      <Text style={s.goalText}>{goal}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Recent activity */}
+            {child.recentMissions.length > 0 && (
+              <View style={s.card}>
+                <Text style={s.cardTitle}>Recent Activity</Text>
+                {child.recentMissions.map((m, i) => {
+                  const pillarCfg = PILLAR_CONFIG[m.pillar];
+                  return (
+                    <View key={i} style={s.activityRow}>
+                      <Text style={s.activityEmoji}>{pillarCfg.emoji}</Text>
+                      <View style={s.activityText}>
+                        <Text style={s.activityTitle}>{m.mission_title}</Text>
+                        <Text style={s.activityMeta}>
+                          {pillarCfg.label} · +{m.xp_earned} XP · {formatDate(m.completed_at)}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Recent badges */}
+            {child.badges.length > 0 && (
+              <View style={s.card}>
+                <Text style={s.cardTitle}>Latest Badges</Text>
+                <View style={s.badgesRow}>
+                  {child.badges.slice(0, 6).map((b, i) => (
+                    <View key={i} style={s.badgeChip}>
+                      <Text style={s.badgeChipText}>{b.badge_name}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Family challenges shortcut */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('FamilyChallengesManager')}
+          style={s.challengesBtn}
+        >
+          <Text style={s.challengesBtnEmoji}>🤝</Text>
+          <View style={s.challengesBtnText}>
+            <Text style={s.challengesBtnTitle}>Family Challenges</Text>
+            <Text style={s.challengesBtnSub}>Set goals you do together</Text>
+          </View>
+          <ChevronRight size={18} color="#374151" />
+        </TouchableOpacity>
+
+        {/* Link to full dashboard */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('ParentDashboard')}
+        >
+          <LinearGradient colors={['#1e3a5f', '#3b82f6']} style={s.dashBtn}>
+            <Text style={s.dashBtnText}>View Full Dashboard & Tools</Text>
+            <ChevronRight size={18} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// ─── Phase goals ──────────────────────────────────────────────────────────────
+const PHASE_GOALS: Record<number, string[]> = {
+  1: ['Establish breakfast routine', 'Build daily water habit', 'Start activity streak'],
+  2: ['Introduce new foods', 'Build family movement habit', 'Encourage independent choices'],
+  3: ['Maintain consistency across all pillars', 'Build resilience and self-confidence', 'Long-term habit mastery'],
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  return 'evening';
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const diff = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return `${diff} days ago`;
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#f9fafb' },
+  screen: { flex: 1 },
+  content: { padding: 20, paddingTop: 16, paddingBottom: 40 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  greeting: { fontSize: 22, fontWeight: '800', color: '#111827' },
+  headerSub: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  codeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
+    borderWidth: 1, borderColor: '#e5e7eb',
+  },
+  codeBtnText: { fontSize: 13, fontWeight: '700', color: '#374151', letterSpacing: 1 },
+
+  alertsBox: { gap: 8, marginBottom: 16 },
+  alertRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 12, padding: 12,
+  },
+  alertWarning: { backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fcd34d' },
+  alertInfo:    { backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe' },
+  alertText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  alertTextWarning: { color: '#92400e' },
+  alertTextInfo:    { color: '#1e40af' },
+  alertActionText:  { fontSize: 12, fontWeight: '700', color: '#d97706' },
+
+  tabsScroll: { marginBottom: 16 },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tab: {
+    paddingHorizontal: 18, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: '#e5e7eb',
+  },
+  tabActive: { backgroundColor: '#1e3a5f', borderColor: '#1e3a5f' },
+  tabText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
+  tabTextActive: { color: '#fff' },
+
+  childStrip: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  childName: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  childMeta: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  streakBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#fff7ed', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: '#fed7aa',
+  },
+  streakText: { fontSize: 13, fontWeight: '700', color: '#c2410c' },
+
+  card: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 16 },
+
+  pillarsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  pillarCircleWrap: { alignItems: 'center', position: 'relative' },
+  pillarCircleFocus: {
+    backgroundColor: '#fff7ed', borderRadius: 12, padding: 4,
+    borderWidth: 1.5, borderColor: '#fed7aa',
+  },
+  pillarCircleInner: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pillarEmoji: { fontSize: 18 },
+  pillarScore: { fontSize: 13, fontWeight: '800' },
+  pillarLabel: { fontSize: 11, fontWeight: '600', color: '#6b7280', marginTop: 4 },
+  focusDot: {
+    position: 'absolute', top: 2, right: 2,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#f97316',
+  },
+  focusNote: {
+    backgroundColor: '#fff7ed', borderRadius: 10, padding: 10, marginTop: 16,
+  },
+  focusNoteText: { fontSize: 13, color: '#92400e', textAlign: 'center' },
+  focusNoteStrong: { fontWeight: '700' },
+
+  checkinNudge: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 16, padding: 16, marginBottom: 14,
+    borderWidth: 1, borderColor: '#fcd34d',
+  },
+  checkinNudgeEmoji: { fontSize: 28 },
+  checkinNudgeText: { flex: 1 },
+  checkinNudgeTitle: { fontSize: 15, fontWeight: '700', color: '#92400e' },
+  checkinNudgeSub: { fontSize: 13, color: '#b45309', marginTop: 2 },
+
+  journeyCard: {
+    borderRadius: 20, overflow: 'hidden', marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+  },
+  journeyHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  journeyPhaseLabel: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.6)', letterSpacing: 1 },
+  journeyPhaseName: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 2 },
+  journeyWeekBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  journeyWeekText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  journeyGoals: { backgroundColor: '#fff', padding: 16 },
+  journeyGoalsTitle: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 10 },
+  goalRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
+  goalDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#3b82f6', marginTop: 6 },
+  goalText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 20 },
+
+  activityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  activityEmoji: { fontSize: 28, marginTop: 2 },
+  activityText: { flex: 1 },
+  activityTitle: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 2 },
+  activityMeta: { fontSize: 12, color: '#6b7280' },
+
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  badgeChip: {
+    backgroundColor: '#f3f4f6', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  badgeChipText: { fontSize: 12, fontWeight: '600', color: '#374151' },
+
+  challengesBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: '#e5e7eb',
+  },
+  challengesBtnEmoji: { fontSize: 32 },
+  challengesBtnText: { flex: 1 },
+  challengesBtnTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  challengesBtnSub: { fontSize: 13, color: '#6b7280', marginTop: 1 },
+  dashBtn: {
+    borderRadius: 16, padding: 18, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between', marginBottom: 4,
+  },
+  dashBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  emptyEmoji: { fontSize: 64, marginBottom: 16 },
+  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 8, textAlign: 'center' },
+  emptySub: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 28, lineHeight: 22 },
+  emptyBtn: { borderRadius: 50, paddingVertical: 16, paddingHorizontal: 32 },
+  emptyBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });

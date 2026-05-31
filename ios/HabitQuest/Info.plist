@@ -34,6 +34,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>HabitQuest needs camera access to upload photos of your family's healthy meals and activities.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>HabitQuest needs photo library access to upload photos of your family's healthy meals and activities.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>UILaunchStoryboardName</key>

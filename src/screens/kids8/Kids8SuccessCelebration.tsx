@@ -84,7 +84,7 @@ export function Kids8SuccessCelebration() {
             </View>
           </View>
 
-          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Kids8TrainingDashboard')}>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('MysteryBox', { returnScreen: 'Kids8TrainingDashboard' })}>
             <LinearGradient colors={['#2563eb', '#0891b2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
               <Text style={styles.btnText}>Back to Dashboard 🏠</Text>
             </LinearGradient>
