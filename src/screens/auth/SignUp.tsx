@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,10 @@ export function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+
+  const emailRef    = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef  = useRef<TextInput>(null);
 
   const handleSignUp = async () => {
     if (!fullName || !email || !password || !confirm) {
@@ -87,9 +91,14 @@ export function SignUp() {
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
 
             <View style={styles.header}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -111,10 +120,14 @@ export function SignUp() {
                 placeholder="e.g. Sarah Johnson"
                 placeholderTextColor="#9ca3af"
                 autoCapitalize="words"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => emailRef.current?.focus()}
               />
 
               <Text style={styles.label}>Email</Text>
               <TextInput
+                ref={emailRef}
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
@@ -123,26 +136,36 @@ export function SignUp() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
 
               <Text style={styles.label}>Password</Text>
               <TextInput
+                ref={passwordRef}
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="At least 6 characters"
                 placeholderTextColor="#9ca3af"
                 secureTextEntry
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => confirmRef.current?.focus()}
               />
 
               <Text style={styles.label}>Confirm password</Text>
               <TextInput
+                ref={confirmRef}
                 style={styles.input}
                 value={confirm}
                 onChangeText={setConfirm}
                 placeholder="Repeat your password"
                 placeholderTextColor="#9ca3af"
                 secureTextEntry
+                returnKeyType="done"
+                onSubmitEditing={handleSignUp}
               />
 
               {error ? <Text style={styles.error}>{error}</Text> : null}

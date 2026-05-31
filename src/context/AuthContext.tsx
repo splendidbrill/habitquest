@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Linking } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -30,7 +31,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    // Handle email confirmation deep link — habitquest://#access_token=...
+    const handleDeepLink = async (url: string) => {
+      if (!url.includes('access_token')) return;
+      const fragment = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
+      if (!fragment) return;
+      const params = new URLSearchParams(fragment);
+      const accessToken  = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      }
+    };
+
+    // App opened via deep link while running
+    const linkSub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+
+    // App opened cold from a deep link
+    Linking.getInitialURL().then(url => { if (url) handleDeepLink(url); });
+
+    return () => {
+      subscription.unsubscribe();
+      linkSub.remove();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
