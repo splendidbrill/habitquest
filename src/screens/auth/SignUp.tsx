@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft } from 'lucide-react-native';
@@ -53,7 +54,11 @@ export function SignUp() {
     if (error) {
       setError(error);
     } else {
-      setDone(true);
+      Alert.alert(
+        'Check your email 📧',
+        'We sent a confirmation link to ' + email.trim().toLowerCase() + '. Tap it to activate your account.',
+        [{ text: 'Got it!', onPress: () => setDone(true) }],
+      );
     }
   };
 

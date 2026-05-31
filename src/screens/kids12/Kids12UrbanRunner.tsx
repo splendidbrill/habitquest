@@ -34,31 +34,35 @@ export function Kids12UrbanRunner() {
   const [collectibles, setCollectibles] = useState<Collectible[]>([]);
   const [highScore, setHighScore] = useState(0);
 
-  const obstacleId = useRef(0);
+  const obstacleId    = useRef(0);
   const collectibleId = useRef(0);
-  const scoreRef = useRef(0);
-  const distanceRef = useRef(0);
+  const scoreRef      = useRef(0);
+  const distanceRef   = useRef(0);
   const playerLaneRef = useRef(1);
-  const gameRef = useRef(false);
+  const gameRef       = useRef(false);
+  const obsRef        = useRef<Obstacle[]>([]);
+  const colRef        = useRef<Collectible[]>([]);
 
   useEffect(() => {
     storage.getItem('kids12UrbanRunnerHighScore').then(v => setHighScore(parseInt(v || '0')));
   }, []);
 
   const startGame = () => {
-    obstacleId.current = 0;
+    obstacleId.current    = 0;
     collectibleId.current = 0;
-    scoreRef.current = 0;
-    distanceRef.current = 0;
+    scoreRef.current      = 0;
+    distanceRef.current   = 0;
     playerLaneRef.current = 1;
+    obsRef.current        = [];
+    colRef.current        = [];
     setScore(0);
     setDistance(0);
     setPlayerLane(1);
     setObstacles([]);
     setCollectibles([]);
     setGameOver(false);
-    setIsPlaying(true);
     gameRef.current = true;
+    setIsPlaying(true);
   };
 
   const endGame = async () => {
@@ -93,65 +97,60 @@ export function Kids12UrbanRunner() {
       distanceRef.current += 1;
       setDistance(distanceRef.current);
 
+      const playerPos = GAME_HEIGHT - 80;
+
       // Spawn obstacles
-      if (Math.random() < 0.12) {
-        const newObs: Obstacle = {
-          id: obstacleId.current++,
-          lane: Math.floor(Math.random() * LANES),
-          pos: 0,
-        };
-        setObstacles(prev => [...prev, newObs]);
+      if (Math.random() < 0.15) {
+        obsRef.current = [
+          ...obsRef.current,
+          { id: obstacleId.current++, lane: Math.floor(Math.random() * LANES), pos: 0 },
+        ];
       }
 
       // Spawn collectibles
-      if (Math.random() < 0.15) {
+      if (Math.random() < 0.18) {
         const ct = collectibleTypes[Math.floor(Math.random() * collectibleTypes.length)];
-        const newCol: Collectible = {
-          id: collectibleId.current++,
-          lane: Math.floor(Math.random() * LANES),
-          pos: 0,
-          icon: ct.icon,
-          points: ct.points,
-        };
-        setCollectibles(prev => [...prev, newCol]);
+        colRef.current = [
+          ...colRef.current,
+          { id: collectibleId.current++, lane: Math.floor(Math.random() * LANES), pos: 0, icon: ct.icon, points: ct.points },
+        ];
       }
 
       // Move obstacles
-      setObstacles(prev => {
-        const moved = prev.map(o => ({ ...o, pos: o.pos + OBSTACLE_SPEED }));
-        // Collision check (near bottom)
-        const playerPos = GAME_HEIGHT - 80;
-        const collided = moved.some(o =>
-          o.lane === playerLaneRef.current &&
-          o.pos > playerPos - 30 &&
-          o.pos < playerPos + 30
-        );
-        if (collided) {
-          endGame();
-          return [];
-        }
-        return moved.filter(o => o.pos < GAME_HEIGHT);
-      });
+      const movedObs = obsRef.current.map(o => ({ ...o, pos: o.pos + OBSTACLE_SPEED }));
+
+      // Collision — checked OUTSIDE setState
+      const collided = movedObs.some(
+        o => o.lane === playerLaneRef.current &&
+             o.pos > playerPos - 30 &&
+             o.pos < playerPos + 30,
+      );
+
+      if (collided) {
+        obsRef.current = [];
+        colRef.current = [];
+        setObstacles([]);
+        setCollectibles([]);
+        endGame();
+        return;
+      }
+
+      obsRef.current = movedObs.filter(o => o.pos < GAME_HEIGHT);
+      setObstacles([...obsRef.current]);
 
       // Move collectibles & check pickup
-      setCollectibles(prev => {
-        const moved = prev.map(c => ({ ...c, pos: c.pos + OBSTACLE_SPEED }));
-        const playerPos = GAME_HEIGHT - 80;
-        const remaining: Collectible[] = [];
-        moved.forEach(c => {
-          if (
-            c.lane === playerLaneRef.current &&
-            c.pos > playerPos - 40 &&
-            c.pos < playerPos + 40
-          ) {
-            scoreRef.current += c.points;
-            setScore(scoreRef.current);
-          } else if (c.pos < GAME_HEIGHT) {
-            remaining.push(c);
-          }
-        });
-        return remaining;
+      const movedCol = colRef.current.map(c => ({ ...c, pos: c.pos + OBSTACLE_SPEED }));
+      const remaining: Collectible[] = [];
+      movedCol.forEach(c => {
+        if (c.lane === playerLaneRef.current && c.pos > playerPos - 40 && c.pos < playerPos + 40) {
+          scoreRef.current += c.points;
+          setScore(scoreRef.current);
+        } else if (c.pos < GAME_HEIGHT) {
+          remaining.push(c);
+        }
       });
+      colRef.current = remaining;
+      setCollectibles([...remaining]);
     }, TICK_MS);
 
     return () => clearInterval(tick);
