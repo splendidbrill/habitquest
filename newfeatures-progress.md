@@ -119,6 +119,14 @@ Type-clean (`npx tsc --noEmit` shows no errors originating in touched files; the
 - **Privacy guardrail preserved:** both sections derive solely from preference signals / `mission_completions` / `pillar_scores` / `streak` — no raw `mood_logs`/energy rows. The existing 10-12 "Wellbeing Trend" (trend-only) card is untouched.
 - New icons imported from `lucide-react-native`: `Dna`, `Flame`, `Activity`. Styling via the existing local `d` StyleSheet (new `dna*` / `arena*` keys); no theme-token violations, no new deps.
 
+## ✅ DONE — Post-MVP gap closure (2026-06-08): 4 brainstorm ideas from `newfeatures.md` not in the original 10-phase plan
+Type-clean (no tsc errors in touched files). No new deps, no new migrations.
+
+1. **Postcode capture** — `FamilyProfile.postcode: string` + `ONBOARDING_IDS.postcode = 21` + `mapAnswersToProfile` (uppercased/trimmed). New onboarding question id 21 (`inputType: 'text'` — added a `text` renderer + `textInput` style + `canProceed` treats `text` as optional; outward postcode only, framed "helps suggest local parks", optional). Fed into the AI plan via `profileToPrompt` (`WeeklyPlan.tsx`) as local context. **Scope note:** this is *capture + prompt context only* — real deprivation-index / park-proximity lookups need an external geo dataset/API (would require a new env var, deferred).
+2. **Time-of-day pattern learning** — `preferenceEngine.computePreferenceModel` now selects `completed_at` from `mission_completions` and derives `model.timePatterns { weekday, weekend, hasTimeSignal }` via `deriveTimePatterns` (buckets hour→`mornings`/`around midday`/`after school`/`evenings`/`late evenings`, split weekday vs weekend, top window each). Added `TimePatterns` to the exported `PreferenceModel` (updated the empty-model literal in `WeeklyPlan.enrichPlanWhy` fallback). Currently surfaced via the coach line (below); not yet used to *reschedule* recommendations — that's the next step if wanted.
+3. **Conversational coach line** — new `src/services/familyCoach.ts` → `buildCoachLine(model)`: deterministic, cites only real learned values (top cuisine + top activity + time window), warm cold-start fallback when `!hasSignal`. Rendered on `ParentDashboard` under the "Family Health DNA" header (new `coachLine` style). This is the **MVP** of the doc's "AI coach voice" — the proactive memory-driven agent ("repeat last Tuesday's taco night?") is still future work.
+4. **Intro slideshow → 6-scene trailer arc** — rewrote `IntroVideo.tsx` `SLIDES` to follow the doc's narrative beats (Problem → Solution → Four Pillars → Getting to know you → Gets smarter → Lasting change), 6 slides. **Still a slideshow, not a real video** — producing an actual 60–90s MP4 is a content task (CapCut/Canva), outside code. The watch/skip/analytics/personalised-end-card infra was already built in Phase 9.
+
 ---
 
 ## Migrations to run in Supabase SQL Editor before device-testing

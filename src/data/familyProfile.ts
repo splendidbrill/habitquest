@@ -44,6 +44,9 @@ export interface FamilyProfile {
   childInterests: string[];
   barriers: string[];
   threeMonthGoal: string;
+  // Outward (partial) postcode, e.g. "SE15". Captured for local context
+  // (green space / nearby parks / area). Optional — empty until answered.
+  postcode: string;
   familyPersonality: FamilyPersonality;
   // Populated by later phases (3 swipe / 4 preference engine).
   // Default to empty so consumers can rely on the field existing.
@@ -74,6 +77,7 @@ export const ONBOARDING_IDS = {
   barriers: 15,
   threeMonthGoal: 16,
   weekdayBusyness: 17,
+  postcode: 21,
   personalityOrganisation: 18,
   personalityStructure: 19,
   personalityRewardTiming: 20,
@@ -133,6 +137,7 @@ export function mapAnswersToProfile(answers: RawAnswers): FamilyProfile {
     childInterests: readMulti(answers, ONBOARDING_IDS.childInterests),
     barriers: readMulti(answers, ONBOARDING_IDS.barriers),
     threeMonthGoal: readSingle(answers, ONBOARDING_IDS.threeMonthGoal),
+    postcode: readSingle(answers, ONBOARDING_IDS.postcode).trim().toUpperCase(),
     familyPersonality: {
       organisation:
         readSingle(answers, ONBOARDING_IDS.personalityOrganisation) ||

@@ -33,13 +33,67 @@ export interface Percentage {
   pct: number;
 }
 
+// When the family actually completes quests, learned from mission_completions
+// timestamps. Friendly labels, not raw clock times. (Doc: "6pm weekdays,
+// 10am weekends — AI adjusts accordingly.")
+export interface TimePatterns {
+  weekday: string | null; // peak window on weekdays, e.g. "after school"
+  weekend: string | null; // peak window at weekends, e.g. "mornings"
+  hasTimeSignal: boolean;
+}
+
 export interface PreferenceModel {
   cuisineScores: Record<string, number>; // 0–100
   activityScores: Record<string, number>; // 0–100
   tagScores: Record<string, number>; // 0–100
   topCuisines: Percentage[];
   topActivities: Percentage[];
+  timePatterns: TimePatterns;
   hasSignal: boolean;
+}
+
+// Bucket an hour-of-day into a friendly window label.
+function timeWindow(hour: number): string {
+  if (hour < 11) return 'mornings';
+  if (hour < 15) return 'around midday';
+  if (hour < 18) return 'after school';
+  if (hour < 21) return 'evenings';
+  return 'late evenings';
+}
+
+function topLabel(counts: Record<string, number>): string | null {
+  let best: string | null = null;
+  let bestN = 0;
+  for (const [label, n] of Object.entries(counts)) {
+    if (n > bestN) {
+      best = label;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+function deriveTimePatterns(
+  rows: Array<{ completed_at?: string | null }>,
+): TimePatterns {
+  const weekday: Record<string, number> = {};
+  const weekend: Record<string, number> = {};
+  for (const row of rows) {
+    if (!row.completed_at) continue;
+    const d = new Date(row.completed_at);
+    if (Number.isNaN(d.getTime())) continue;
+    const day = d.getDay(); // 0 Sun … 6 Sat
+    const bucket = day === 0 || day === 6 ? weekend : weekday;
+    bucket[timeWindow(d.getHours())] =
+      (bucket[timeWindow(d.getHours())] ?? 0) + 1;
+  }
+  const wk = topLabel(weekday);
+  const we = topLabel(weekend);
+  return {
+    weekday: wk,
+    weekend: we,
+    hasTimeSignal: wk !== null || we !== null,
+  };
 }
 
 type PrefRow = {
@@ -118,7 +172,7 @@ export async function computePreferenceModel(
   // 4 — mission_completions per tag (strong completion signal).
   const { data: completions } = await supabase
     .from('mission_completions')
-    .select('mission_id')
+    .select('mission_id, completed_at')
     .eq('child_id', childId)
     .limit(200);
 
@@ -127,6 +181,9 @@ export async function computePreferenceModel(
     if (!mission) continue;
     for (const tag of mission.tags) add(tagRaw, tag, SOURCE_WEIGHT.completion);
   }
+
+  // When this family tends to be active (weekday vs weekend windows).
+  const timePatterns = deriveTimePatterns(completions ?? []);
 
   const cuisineScores = toPctMap(cuisineRaw);
   const activityScores = toPctMap(activityRaw);
@@ -138,6 +195,7 @@ export async function computePreferenceModel(
     tagScores,
     topCuisines: topN(cuisineScores, 5),
     topActivities: topN(activityScores, 5),
+    timePatterns,
     hasSignal:
       Object.keys(cuisineRaw).length > 0 ||
       Object.keys(activityRaw).length > 0 ||

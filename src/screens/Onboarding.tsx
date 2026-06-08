@@ -103,6 +103,13 @@ const questions: Question[] = [
     ],
   },
   {
+    id: 21,
+    question: "What's your postcode area?",
+    subtitle:
+      'Just the first part (e.g. SE15) — helps us suggest local parks and outdoor ideas. Optional.',
+    inputType: 'text',
+  },
+  {
     id: 17,
     question: 'How busy are your weekdays?',
     subtitle: 'Slide to match your real schedule — we’ll keep things realistic',
@@ -382,7 +389,9 @@ export function Onboarding() {
 
   const canProceed = q.multiSelect
     ? ((answers[q.id] as string[])?.length ?? 0) > 0
-    : q.inputType === 'slider' || q.inputType === 'textarea'
+    : q.inputType === 'slider' ||
+      q.inputType === 'textarea' ||
+      q.inputType === 'text'
     ? true // optional free-form / scale steps
     : answers[q.id] !== undefined;
 
@@ -520,6 +529,18 @@ export function Onboarding() {
                 <Text style={styles.sliderLabel}>{q.slider.maxLabel}</Text>
               </View>
             </View>
+          )}
+
+          {q.inputType === 'text' && (
+            <TextInput
+              style={styles.textInput}
+              value={(answers[q.id] as string) || ''}
+              onChangeText={t => setAnswers({ ...answers, [q.id]: t })}
+              placeholder="e.g. SE15"
+              placeholderTextColor={colors.mutedForeground}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
           )}
 
           {q.inputType === 'textarea' && (
@@ -694,6 +715,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.foreground,
     lineHeight: 22,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius,
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: colors.foreground,
   },
   optionRow: {
     flexDirection: 'row',

@@ -47,29 +47,44 @@ type Slide = {
   colors: [string, string];
 };
 
+// Follows the doc's 6-scene "trailer" arc: Problem → Solution → Four Pillars
+// → Getting to know you → Gets smarter → Lasting change. Still a slideshow
+// (no video dep), but now mirrors the intended narrative beats.
 const SLIDES: Slide[] = [
   {
-    emoji: '👋',
-    title: 'Welcome to HabitQuest',
-    body: 'Small, doable steps that help your whole family eat well and move more — without the lectures.',
+    emoji: '🤹',
+    title: 'Family life is busy',
+    body: 'Routines change, children lose interest, and healthy advice can feel overwhelming. Building good habits is hard.',
     colors: ['#f97316', '#ea580c'],
   },
   {
-    emoji: '🍽️',
-    title: 'Meals your family will actually eat',
-    body: 'We learn what you love and plan around it — familiar favourites, the odd new twist, always within your time and budget.',
+    emoji: '💡',
+    title: 'HabitQuest makes it simple',
+    body: 'We help your whole family build small healthy habits that actually fit into daily life — enjoyable and achievable.',
+    colors: ['#f59e0b', '#d97706'],
+  },
+  {
+    emoji: '🧭',
+    title: 'Built around four pillars',
+    body: '🥕 Nutrition   ⚽ Activity   😴 Sleep   🧠 Confidence\n\nEvery meal, quest and challenge supports healthy growth.',
     colors: ['#22c55e', '#16a34a'],
   },
   {
-    emoji: '⚽',
-    title: 'Quests, not "exercise"',
-    body: 'Movement framed as play your child wants to do — matched to what makes them light up.',
+    emoji: '📝',
+    title: 'We get to know your family',
+    body: 'Family size, the foods you love, your budget, what your child enjoys — your plans are shaped around your real life.',
+    colors: ['#0ea5e9', '#0284c7'],
+  },
+  {
+    emoji: '📈',
+    title: 'It gets smarter every week',
+    body: 'Your family coach learns what works and what doesn’t. Week 1 helpful, week 4 personal, week 12 built around you.',
     colors: ['#8b5cf6', '#7c3aed'],
   },
   {
     emoji: '💚',
-    title: 'It gets smarter every week',
-    body: 'Tell us how each meal and quest went — one tap — and next week fits your family even better.',
+    title: 'Small habits, lasting change',
+    body: 'No calorie counting. No judgement. Just small daily wins.\n\nHealthy habits, happy families — one quest at a time.',
     colors: ['#ec4899', '#db2777'],
   },
 ];

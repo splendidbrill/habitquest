@@ -239,6 +239,10 @@ function profileToPrompt(p: FamilyProfile): string {
   if (p.equipment.length)
     parts.push(`Equipment available: ${p.equipment.join(', ')}`);
   if (p.childAge !== null) parts.push(`Child age: ${p.childAge}`);
+  if (p.postcode)
+    parts.push(
+      `Postcode area: ${p.postcode} (suggest local outdoor/park ideas where relevant)`,
+    );
   return parts.join('. ');
 }
 
@@ -385,6 +389,7 @@ export function WeeklyPlan() {
           tagScores: {},
           topCuisines: [],
           topActivities: [],
+          timePatterns: { weekday: null, weekend: null, hasTimeSignal: false },
           hasSignal: false,
         },
         p,

@@ -41,6 +41,7 @@ import {
   computePreferenceModel,
   type PreferenceModel,
 } from '../services/preferenceEngine';
+import { buildCoachLine } from '../services/familyCoach';
 import type { Pillar } from '../services/syncService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -386,6 +387,9 @@ export function ParentDashboard() {
                   Family Health DNA
                 </Text>
               </View>
+              {!dnaLoading && dna && (
+                <Text style={d.coachLine}>{buildCoachLine(dna)}</Text>
+              )}
               {dnaLoading ? (
                 <ActivityIndicator
                   size="small"
@@ -1032,6 +1036,12 @@ const d = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 16,
+  },
+  coachLine: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#4b5563',
     marginBottom: 16,
   },
   dnaGroup: { marginBottom: 16 },
