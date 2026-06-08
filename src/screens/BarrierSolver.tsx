@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, SafeAreaView,
@@ -13,6 +13,8 @@ import {
   type Barrier, type BarrierResponse,
 } from '../data/barrierSolverData';
 import type { Pillar } from '../services/syncService';
+import { useTTS } from '../hooks/useTTS';
+import { TTSInstallPrompt } from '../components/TTSInstallPrompt';
 
 type RouteParams = RouteProp<RootStackParamList, 'BarrierSolver'>;
 
@@ -30,12 +32,18 @@ export function BarrierSolver() {
 
   const [selectedBarrier, setSelectedBarrier] = useState<Barrier | null>(null);
   const [response, setResponse] = useState<BarrierResponse | null>(null);
+  const { read, showPrompt, setShowPrompt } = useTTS();
 
   const pillarCfg = PILLAR_CONFIG[pillar];
 
   const handleSelectBarrier = (barrier: Barrier) => {
     setSelectedBarrier(barrier);
-    setResponse(resolveBarrier(barrier, pillar));
+    const res = resolveBarrier(barrier, pillar);
+    setResponse(res);
+    // Auto-read advice when a barrier is selected
+    if (res) {
+      read(`${res.title}. ${res.advice} ${res.scripts?.[0] ? 'Try saying: ' + res.scripts[0] : ''}`);
+    }
   };
 
   const handleReset = () => {
@@ -45,6 +53,7 @@ export function BarrierSolver() {
 
   return (
     <SafeAreaView style={s.safe}>
+      <TTSInstallPrompt visible={showPrompt} onClose={() => setShowPrompt(false)} />
       <ScrollView style={s.screen} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
         {/* Header */}

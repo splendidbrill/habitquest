@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Lightbulb } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { colors, typography, radius, withOpacity } from '../theme';
+import { useTTS } from '../hooks/useTTS';
+import { TTSInstallPrompt } from '../components/TTSInstallPrompt';
 
 const behaviourTips = [
   { id: '1', scenario: 'Child refusing vegetables?', tip: 'Serve a very small portion alongside familiar foods. No pressure to eat it.', emoji: '🥦', why: 'Small portions feel less overwhelming. Seeing it regularly builds familiarity without force.' },
@@ -24,9 +26,13 @@ const behaviourTips = [
 
 export function FoodBehaviourTips() {
   const navigation = useNavigation();
+  const { read, showPrompt, setShowPrompt } = useTTS({
+    autoRead: 'Food behaviour tips. Pick one tip to try this week and see how it goes. Tap any card to hear the advice.',
+  });
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <TTSInstallPrompt visible={showPrompt} onClose={() => setShowPrompt(false)} />
       <View style={styles.header}>
         <Button variant="ghost" size="sm" onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={20} color={colors.foreground} />
@@ -51,7 +57,8 @@ export function FoodBehaviourTips() {
 
       <View style={styles.list}>
         {behaviourTips.map(tip => (
-          <Card key={tip.id} style={styles.tipCard}>
+          <TouchableOpacity key={tip.id} activeOpacity={0.85} onPress={() => read(`${tip.scenario} ${tip.tip} Why this works: ${tip.why}`)}>
+          <Card style={styles.tipCard}>
             <View style={styles.tipTop}>
               <Text style={styles.tipEmoji}>{tip.emoji}</Text>
               <Text style={styles.tipScenario}>{tip.scenario}</Text>
@@ -68,6 +75,7 @@ export function FoodBehaviourTips() {
               </Text>
             </View>
           </Card>
+          </TouchableOpacity>
         ))}
       </View>
 

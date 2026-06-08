@@ -1,29 +1,60 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, Pressable,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  ShoppingCart, Camera, Lightbulb, TrendingUp,
-  BookOpen, Award, ChevronRight, Heart, Users, Sparkles,
+  ShoppingCart,
+  Camera,
+  Lightbulb,
+  TrendingUp,
+  BookOpen,
+  Award,
+  ChevronRight,
+  Heart,
+  Users,
+  Sparkles,
+  Volume2,
 } from 'lucide-react-native';
+import { useTTS } from '../hooks/useTTS';
+import { TTSInstallPrompt } from '../components/TTSInstallPrompt';
 import { getParentDigest, type ParentDigest } from '../services/aiAgentService';
 import type { AgeGroup } from '../data/missionCatalog';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
 import { useParentData, ChildSummary } from '../hooks/useParentData';
+import { MicroQuestionCard } from '../components/MicroQuestionCard';
 import type { Pillar } from '../services/syncService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const PILLAR_CONFIG: Record<Pillar, { emoji: string; label: string; color: string; bg: string }> = {
-  nutrition:  { emoji: '🥕', label: 'Nutrition',  color: '#16a34a', bg: '#f0fdf4' },
-  movement:   { emoji: '⚽', label: 'Movement',   color: '#ea580c', bg: '#fff7ed' },
-  sleep:      { emoji: '😴', label: 'Sleep',      color: '#7c3aed', bg: '#faf5ff' },
-  confidence: { emoji: '🧠', label: 'Confidence', color: '#db2777', bg: '#fdf2f8' },
+const PILLAR_CONFIG: Record<
+  Pillar,
+  { emoji: string; label: string; color: string; bg: string }
+> = {
+  nutrition: {
+    emoji: '🥕',
+    label: 'Nutrition',
+    color: '#16a34a',
+    bg: '#f0fdf4',
+  },
+  movement: { emoji: '⚽', label: 'Movement', color: '#ea580c', bg: '#fff7ed' },
+  sleep: { emoji: '😴', label: 'Sleep', color: '#7c3aed', bg: '#faf5ff' },
+  confidence: {
+    emoji: '🧠',
+    label: 'Confidence',
+    color: '#db2777',
+    bg: '#fdf2f8',
+  },
 };
 
 function scoreColor(score: number): string {
@@ -39,11 +70,25 @@ function scoreLabel(score: number): string {
 }
 
 // ─── Pillar detail bar ────────────────────────────────────────────────────────
-function PillarBar({ pillar, score, isFocus }: { pillar: Pillar; score: number; isFocus: boolean }) {
+function PillarBar({
+  pillar,
+  score,
+  isFocus,
+}: {
+  pillar: Pillar;
+  score: number;
+  isFocus: boolean;
+}) {
   const cfg = PILLAR_CONFIG[pillar];
   const color = scoreColor(score);
   return (
-    <View style={[d.pillarBar, isFocus && { borderColor: '#f97316', borderWidth: 1.5 }, { backgroundColor: cfg.bg }]}>
+    <View
+      style={[
+        d.pillarBar,
+        isFocus && { borderColor: '#f97316', borderWidth: 1.5 },
+        { backgroundColor: cfg.bg },
+      ]}
+    >
       <View style={d.pillarBarLeft}>
         <Text style={d.pillarBarEmoji}>{cfg.emoji}</Text>
         <View>
@@ -56,33 +101,114 @@ function PillarBar({ pillar, score, isFocus }: { pillar: Pillar; score: number; 
         <Text style={[d.pillarBarLabel, { color }]}>{scoreLabel(score)}</Text>
       </View>
       <View style={d.pillarBarTrack}>
-        <View style={[d.pillarBarFill, { width: `${score}%`, backgroundColor: color }]} />
+        <View
+          style={[
+            d.pillarBarFill,
+            { width: `${score}%`, backgroundColor: color },
+          ]}
+        />
       </View>
     </View>
   );
 }
 
 const TOOLS = [
-  { label: 'Grocery List',   desc: "Weekly meal ingredients",    Icon: ShoppingCart, route: 'GroceryList',        color: '#eff6ff', iconColor: '#3b82f6' },
-  { label: 'Healthy Swaps',  desc: 'Cheap, simple alternatives', Icon: TrendingUp,   route: 'HealthySwaps',       color: '#f0fdf4', iconColor: '#16a34a' },
-  { label: 'Quick Meals',    desc: 'Under 15 min & £5',          Icon: Lightbulb,    route: 'QuickMealMode',      color: '#fefce8', iconColor: '#ca8a04' },
-  { label: 'Photo Rewards',  desc: 'Upload & earn vouchers',     Icon: Camera,       route: 'PhotoRewards',       color: '#fff7ed', iconColor: '#ea580c' },
-  { label: 'Budget Tracker', desc: 'See money saved',            Icon: TrendingUp,   route: 'BudgetTracker',      color: '#f5f3ff', iconColor: '#7c3aed' },
-  { label: 'Weekly Report',  desc: 'Family progress report',     Icon: BookOpen,     route: 'WeeklyReport',       color: '#fdf2f8', iconColor: '#db2777' },
-  { label: 'Behaviour Tips', desc: 'Quick advice cards',         Icon: Lightbulb,    route: 'FoodBehaviourTips',  color: '#eff6ff', iconColor: '#3b82f6' },
-  { label: 'Barrier Solver', desc: "What stopped today's quest?", Icon: Lightbulb,   route: 'BarrierSolver',      color: '#f0fdf4', iconColor: '#16a34a' },
-  { label: 'Your Rewards',   desc: 'Points & prizes',            Icon: Award,        route: 'ParentRewards',      color: '#fefce8', iconColor: '#ca8a04' },
+  {
+    label: 'AI Chef',
+    desc: 'Personalised family meals',
+    Icon: Sparkles,
+    route: 'AIChef',
+    color: '#fff7ed',
+    iconColor: '#f97316',
+  },
+  {
+    label: 'Grocery List',
+    desc: 'Weekly meal ingredients',
+    Icon: ShoppingCart,
+    route: 'GroceryList',
+    color: '#eff6ff',
+    iconColor: '#3b82f6',
+  },
+  {
+    label: 'Healthy Swaps',
+    desc: 'Cheap, simple alternatives',
+    Icon: TrendingUp,
+    route: 'HealthySwaps',
+    color: '#f0fdf4',
+    iconColor: '#16a34a',
+  },
+  {
+    label: 'Quick Meals',
+    desc: 'Under 15 min & £5',
+    Icon: Lightbulb,
+    route: 'QuickMealMode',
+    color: '#fefce8',
+    iconColor: '#ca8a04',
+  },
+  {
+    label: 'Photo Rewards',
+    desc: 'Upload & earn vouchers',
+    Icon: Camera,
+    route: 'PhotoRewards',
+    color: '#fff7ed',
+    iconColor: '#ea580c',
+  },
+  {
+    label: 'Budget Tracker',
+    desc: 'See money saved',
+    Icon: TrendingUp,
+    route: 'BudgetTracker',
+    color: '#f5f3ff',
+    iconColor: '#7c3aed',
+  },
+  {
+    label: 'Weekly Report',
+    desc: 'Family progress report',
+    Icon: BookOpen,
+    route: 'WeeklyReport',
+    color: '#fdf2f8',
+    iconColor: '#db2777',
+  },
+  {
+    label: 'Behaviour Tips',
+    desc: 'Quick advice cards',
+    Icon: Lightbulb,
+    route: 'FoodBehaviourTips',
+    color: '#eff6ff',
+    iconColor: '#3b82f6',
+  },
+  {
+    label: 'Barrier Solver',
+    desc: "What stopped today's quest?",
+    Icon: Lightbulb,
+    route: 'BarrierSolver',
+    color: '#f0fdf4',
+    iconColor: '#16a34a',
+  },
+  {
+    label: 'Your Rewards',
+    desc: 'Points & prizes',
+    Icon: Award,
+    route: 'ParentRewards',
+    color: '#fefce8',
+    iconColor: '#ca8a04',
+  },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function ParentDashboard() {
   const navigation = useNavigation<Nav>();
   const { children, journey, loading, reload } = useParentData();
+  const { read, showPrompt, setShowPrompt } = useTTS();
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [digest, setDigest] = useState<ParentDigest | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
 
-  useFocusEffect(useCallback(() => { reload(); }, [reload]));
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
 
   const child: ChildSummary | undefined = selectedChildId
     ? children.find(c => c.id === selectedChildId)
@@ -93,7 +219,10 @@ export function ParentDashboard() {
     setDigest(null);
     setDigestLoading(true);
     getParentDigest(child.id, child.name, child.age_group as AgeGroup)
-      .then(d => { setDigest(d); setDigestLoading(false); })
+      .then(d => {
+        setDigest(d);
+        setDigestLoading(false);
+      })
       .catch(() => setDigestLoading(false));
   }, [child?.id]);
 
@@ -101,7 +230,6 @@ export function ParentDashboard() {
   const pillars: Pillar[] = ['nutrition', 'movement', 'sleep', 'confidence'];
 
   if (loading) {
-
     return (
       <View style={d.centered}>
         <ActivityIndicator size="large" color="#f97316" />
@@ -111,8 +239,15 @@ export function ParentDashboard() {
 
   return (
     <SafeAreaView style={d.safe}>
-      <ScrollView style={d.screen} contentContainerStyle={d.content} showsVerticalScrollIndicator={false}>
-
+      <TTSInstallPrompt
+        visible={showPrompt}
+        onClose={() => setShowPrompt(false)}
+      />
+      <ScrollView
+        style={d.screen}
+        contentContainerStyle={d.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={d.header}>
           <Text style={d.title}>Family Dashboard</Text>
@@ -121,15 +256,28 @@ export function ParentDashboard() {
 
         {/* Child selector */}
         {children.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={d.tabsScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={d.tabsScroll}
+          >
             <View style={d.tabs}>
               {children.map(c => (
                 <TouchableOpacity
                   key={c.id}
                   onPress={() => setSelectedChildId(c.id)}
-                  style={[d.tab, (selectedChildId ?? children[0].id) === c.id && d.tabActive]}
+                  style={[
+                    d.tab,
+                    (selectedChildId ?? children[0].id) === c.id && d.tabActive,
+                  ]}
                 >
-                  <Text style={[d.tabText, (selectedChildId ?? children[0].id) === c.id && d.tabTextActive]}>
+                  <Text
+                    style={[
+                      d.tabText,
+                      (selectedChildId ?? children[0].id) === c.id &&
+                        d.tabTextActive,
+                    ]}
+                  >
                     {c.name}
                   </Text>
                 </TouchableOpacity>
@@ -140,6 +288,9 @@ export function ParentDashboard() {
 
         {child && (
           <>
+            {/* Progressive profiling — at most one micro-question every few days */}
+            <MicroQuestionCard childId={child.id} />
+
             {/* Pillar bars */}
             <View style={d.sectionCard}>
               <Text style={d.sectionTitle}>Pillar Scores — {child.name}</Text>
@@ -158,11 +309,33 @@ export function ParentDashboard() {
               <View style={d.sectionCard}>
                 <View style={d.insightHeader}>
                   <Sparkles size={15} color="#7c3aed" />
-                  <Text style={[d.sectionTitle, { marginBottom: 0 }]}>Weekly Insight</Text>
+                  <Text style={[d.sectionTitle, { marginBottom: 0 }]}>
+                    Weekly Insight
+                  </Text>
                   <Text style={d.insightPowered}>AI coach</Text>
+                  {digest && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        read(
+                          `${digest.summary} ${digest.patterns.join('. ')} ${
+                            digest.suggestion
+                              ? 'Suggestion: ' + digest.suggestion
+                              : ''
+                          }`,
+                        )
+                      }
+                      style={{ padding: 4, marginLeft: 4 }}
+                    >
+                      <Volume2 size={16} color="#7c3aed" />
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {digestLoading ? (
-                  <ActivityIndicator size="small" color="#7c3aed" style={{ marginTop: 14 }} />
+                  <ActivityIndicator
+                    size="small"
+                    color="#7c3aed"
+                    style={{ marginTop: 14 }}
+                  />
                 ) : digest ? (
                   <>
                     <Text style={d.insightSummary}>{digest.summary}</Text>
@@ -178,8 +351,12 @@ export function ParentDashboard() {
                     )}
                     {digest.suggestion ? (
                       <View style={d.insightSuggestion}>
-                        <Text style={d.insightSuggestionLabel}>Try this week</Text>
-                        <Text style={d.insightSuggestionText}>{digest.suggestion}</Text>
+                        <Text style={d.insightSuggestionLabel}>
+                          Try this week
+                        </Text>
+                        <Text style={d.insightSuggestionText}>
+                          {digest.suggestion}
+                        </Text>
                       </View>
                     ) : null}
                     {digest.alerts.filter(Boolean).map((a, i) => (
@@ -199,14 +376,22 @@ export function ParentDashboard() {
                 {child.pillarHistory.slice(0, 4).map((week, i) => (
                   <View key={i} style={d.historyRow}>
                     <Text style={d.historyWeek}>
-                      {i === 0 ? 'This week' : `${i} week${i > 1 ? 's' : ''} ago`}
+                      {i === 0
+                        ? 'This week'
+                        : `${i} week${i > 1 ? 's' : ''} ago`}
                     </Text>
                     <View style={d.historyScores}>
                       {pillars.map(p => {
                         const key = `${p}_score` as keyof typeof week;
-                        const val = week[key] as number ?? 0;
+                        const val = (week[key] as number) ?? 0;
                         return (
-                          <View key={p} style={[d.historyDot, { backgroundColor: scoreColor(val) }]}>
+                          <View
+                            key={p}
+                            style={[
+                              d.historyDot,
+                              { backgroundColor: scoreColor(val) },
+                            ]}
+                          >
                             <Text style={d.historyDotText}>{val}</Text>
                           </View>
                         );
@@ -217,8 +402,12 @@ export function ParentDashboard() {
                 <View style={d.historyLegend}>
                   {pillars.map(p => (
                     <View key={p} style={d.legendItem}>
-                      <Text style={d.legendEmoji}>{PILLAR_CONFIG[p].emoji}</Text>
-                      <Text style={d.legendText}>{PILLAR_CONFIG[p].label.slice(0, 3)}</Text>
+                      <Text style={d.legendEmoji}>
+                        {PILLAR_CONFIG[p].emoji}
+                      </Text>
+                      <Text style={d.legendText}>
+                        {PILLAR_CONFIG[p].label.slice(0, 3)}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -229,21 +418,47 @@ export function ParentDashboard() {
             {journey && (
               <View style={d.sectionCard}>
                 <Text style={d.sectionTitle}>Family Journey</Text>
-                <LinearGradient colors={['#1e3a5f', '#3b82f6']} style={d.journeyBanner}>
-                  <Text style={d.journeyPhase}>Phase {journey.phase} — {journey.phaseLabel}</Text>
+                <LinearGradient
+                  colors={['#1e3a5f', '#3b82f6']}
+                  style={d.journeyBanner}
+                >
+                  <Text style={d.journeyPhase}>
+                    Phase {journey.phase} — {journey.phaseLabel}
+                  </Text>
                   <Text style={d.journeyWeek}>Week {journey.weekNumber}</Text>
                 </LinearGradient>
 
                 {([1, 2, 3] as const).map(phase => (
-                  <View key={phase} style={[d.phaseRow, journey.phase === phase && d.phaseRowActive]}>
-                    <View style={[d.phaseNumCircle, journey.phase > phase && d.phaseNumDone, journey.phase === phase && d.phaseNumCurrent]}>
-                      {journey.phase > phase
-                        ? <Text style={d.phaseNumText}>✓</Text>
-                        : <Text style={d.phaseNumText}>{phase}</Text>
-                      }
+                  <View
+                    key={phase}
+                    style={[
+                      d.phaseRow,
+                      journey.phase === phase && d.phaseRowActive,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        d.phaseNumCircle,
+                        journey.phase > phase && d.phaseNumDone,
+                        journey.phase === phase && d.phaseNumCurrent,
+                      ]}
+                    >
+                      {journey.phase > phase ? (
+                        <Text style={d.phaseNumText}>✓</Text>
+                      ) : (
+                        <Text style={d.phaseNumText}>{phase}</Text>
+                      )}
                     </View>
                     <View style={d.phaseText}>
-                      <Text style={[d.phaseName, journey.phase === phase && { color: '#1e3a5f', fontWeight: '800' }]}>
+                      <Text
+                        style={[
+                          d.phaseName,
+                          journey.phase === phase && {
+                            color: '#1e3a5f',
+                            fontWeight: '800',
+                          },
+                        ]}
+                      >
                         Phase {phase}: {PHASE_NAMES[phase]}
                       </Text>
                       <Text style={d.phaseDesc}>{PHASE_DESCS[phase]}</Text>
@@ -258,24 +473,46 @@ export function ParentDashboard() {
               <View style={d.sectionCard}>
                 <View style={d.moodHeader}>
                   <Text style={d.sectionTitle}>Wellbeing Trend</Text>
-                  <Text style={d.moodPrivacyNote}>🔒 Trend only — not raw entries</Text>
+                  <Text style={d.moodPrivacyNote}>
+                    🔒 Trend only — not raw entries
+                  </Text>
                 </View>
                 <View style={d.moodBars}>
-                  {pillars.filter(p => p === 'confidence' || p === 'sleep').map(p => {
-                    const score = child.pillarScores[p];
-                    return (
-                      <View key={p} style={d.moodBarRow}>
-                        <Text style={d.moodBarLabel}>{PILLAR_CONFIG[p].label}</Text>
-                        <View style={d.moodBarTrack}>
-                          <View style={[d.moodBarFill, { width: `${score}%`, backgroundColor: scoreColor(score) }]} />
+                  {pillars
+                    .filter(p => p === 'confidence' || p === 'sleep')
+                    .map(p => {
+                      const score = child.pillarScores[p];
+                      return (
+                        <View key={p} style={d.moodBarRow}>
+                          <Text style={d.moodBarLabel}>
+                            {PILLAR_CONFIG[p].label}
+                          </Text>
+                          <View style={d.moodBarTrack}>
+                            <View
+                              style={[
+                                d.moodBarFill,
+                                {
+                                  width: `${score}%`,
+                                  backgroundColor: scoreColor(score),
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              d.moodBarScore,
+                              { color: scoreColor(score) },
+                            ]}
+                          >
+                            {score}%
+                          </Text>
                         </View>
-                        <Text style={[d.moodBarScore, { color: scoreColor(score) }]}>{score}%</Text>
-                      </View>
-                    );
-                  })}
+                      );
+                    })}
                 </View>
                 <Text style={d.moodNote}>
-                  Scores derived from completed missions and weekly check-ins — not from journal entries.
+                  Scores derived from completed missions and weekly check-ins —
+                  not from journal entries.
                 </Text>
               </View>
             )}
@@ -286,14 +523,22 @@ export function ParentDashboard() {
         <Text style={d.toolsTitle}>Parent Tools</Text>
         <View style={d.grid}>
           {TOOLS.map((tool, i) => (
-            <Pressable key={i} style={d.gridItem} onPress={() => {
-            if (tool.route === 'BarrierSolver') {
-              const c = child ?? children[0];
-              if (c) navigation.navigate('BarrierSolver', { childName: c.name, pillar: focusPillar });
-            } else {
-              navigation.navigate(tool.route as any);
-            }
-          }}>
+            <Pressable
+              key={i}
+              style={d.gridItem}
+              onPress={() => {
+                if (tool.route === 'BarrierSolver') {
+                  const c = child ?? children[0];
+                  if (c)
+                    navigation.navigate('BarrierSolver', {
+                      childName: c.name,
+                      pillar: focusPillar,
+                    });
+                } else {
+                  navigation.navigate(tool.route as any);
+                }
+              }}
+            >
               <View style={[d.toolCard, { backgroundColor: tool.color }]}>
                 <tool.Icon size={22} color={tool.iconColor} />
                 <Text style={d.toolLabel}>{tool.label}</Text>
@@ -310,8 +555,14 @@ export function ParentDashboard() {
             <Text style={d.sectionTitle}>Support & Guidance</Text>
           </View>
           {[
-            { label: 'Handling resistance to new foods', screen: 'HandlingResistance' },
-            { label: 'Supportive responses guide', screen: 'SupportiveResponses' },
+            {
+              label: 'Handling resistance to new foods',
+              screen: 'HandlingResistance',
+            },
+            {
+              label: 'Supportive responses guide',
+              screen: 'SupportiveResponses',
+            },
             { label: 'Difficult behaviour tips', screen: 'DifficultBehaviors' },
           ].map((item, i) => (
             <TouchableOpacity
@@ -356,89 +607,253 @@ const d = StyleSheet.create({
 
   tabsScroll: { marginBottom: 16 },
   tabs: { flexDirection: 'row', gap: 8 },
-  tab: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb' },
+  tab: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
   tabActive: { backgroundColor: '#1e3a5f', borderColor: '#1e3a5f' },
   tabText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
   tabTextActive: { color: '#fff' },
 
   sectionCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 14 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 14,
+  },
 
-  pillarBar: { borderRadius: 14, padding: 14, marginBottom: 10, position: 'relative', overflow: 'hidden' },
-  pillarBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  pillarBar: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  pillarBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
   pillarBarEmoji: { fontSize: 26 },
   pillarBarName: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  focusTag: { fontSize: 10, fontWeight: '700', color: '#f97316', letterSpacing: 0.5, marginTop: 1 },
-  pillarBarRight: { position: 'absolute', top: 14, right: 14, alignItems: 'flex-end' },
+  focusTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#f97316',
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  pillarBarRight: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    alignItems: 'flex-end',
+  },
   pillarBarScore: { fontSize: 22, fontWeight: '900' },
   pillarBarLabel: { fontSize: 11, fontWeight: '600' },
-  pillarBarTrack: { height: 6, backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: 3, overflow: 'hidden' },
+  pillarBarTrack: {
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
   pillarBarFill: { height: '100%', borderRadius: 3 },
 
-  historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   historyWeek: { fontSize: 13, color: '#6b7280', width: 90 },
   historyScores: { flexDirection: 'row', gap: 6 },
-  historyDot: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  historyDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   historyDotText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-  historyLegend: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 4 },
+  historyLegend: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 4,
+  },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendEmoji: { fontSize: 14 },
   legendText: { fontSize: 11, color: '#9ca3af' },
 
-  journeyBanner: { borderRadius: 14, padding: 16, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  journeyBanner: {
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   journeyPhase: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  journeyWeek: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
-  phaseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 12, padding: 12, borderRadius: 12 },
+  journeyWeek: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  phaseRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+  },
   phaseRowActive: { backgroundColor: '#eff6ff' },
-  phaseNumCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' },
+  phaseNumCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e5e7eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   phaseNumCurrent: { backgroundColor: '#1e3a5f' },
   phaseNumDone: { backgroundColor: '#22c55e' },
   phaseNumText: { fontSize: 13, fontWeight: '800', color: '#fff' },
   phaseText: { flex: 1 },
-  phaseName: { fontSize: 14, fontWeight: '600', color: '#6b7280', marginBottom: 2 },
+  phaseName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 2,
+  },
   phaseDesc: { fontSize: 12, color: '#9ca3af', lineHeight: 17 },
 
-  moodHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  moodHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
   moodPrivacyNote: { fontSize: 11, color: '#6b7280' },
   moodBars: { gap: 12 },
   moodBarRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  moodBarLabel: { width: 80, fontSize: 13, color: '#374151', fontWeight: '600' },
-  moodBarTrack: { flex: 1, height: 8, backgroundColor: '#e5e7eb', borderRadius: 4, overflow: 'hidden' },
+  moodBarLabel: {
+    width: 80,
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  moodBarTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
   moodBarFill: { height: '100%', borderRadius: 4 },
-  moodBarScore: { width: 36, fontSize: 13, fontWeight: '700', textAlign: 'right' },
+  moodBarScore: {
+    width: 36,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
   moodNote: { fontSize: 12, color: '#9ca3af', marginTop: 12, lineHeight: 17 },
 
-  insightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  insightPowered: { fontSize: 11, color: '#7c3aed', fontWeight: '600', marginLeft: 'auto' as any },
-  insightSummary: { fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 12 },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  insightPowered: {
+    fontSize: 11,
+    color: '#7c3aed',
+    fontWeight: '600',
+    marginLeft: 'auto' as any,
+  },
+  insightSummary: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
   insightPatterns: { gap: 6, marginBottom: 12 },
   insightPattern: { flexDirection: 'row', gap: 6 },
   insightBullet: { fontSize: 14, color: '#7c3aed', lineHeight: 22 },
-  insightPatternText: { fontSize: 13, color: '#4b5563', flex: 1, lineHeight: 20 },
-  insightSuggestion: {
-    backgroundColor: '#f5f3ff', borderRadius: 12, padding: 14,
-    borderLeftWidth: 3, borderLeftColor: '#7c3aed', marginBottom: 10,
+  insightPatternText: {
+    fontSize: 13,
+    color: '#4b5563',
+    flex: 1,
+    lineHeight: 20,
   },
-  insightSuggestionLabel: { fontSize: 11, fontWeight: '700', color: '#7c3aed', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  insightSuggestion: {
+    backgroundColor: '#f5f3ff',
+    borderRadius: 12,
+    padding: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#7c3aed',
+    marginBottom: 10,
+  },
+  insightSuggestionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7c3aed',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   insightSuggestionText: { fontSize: 14, color: '#374151', lineHeight: 20 },
   insightAlert: {
-    backgroundColor: '#fefce8', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#fde047', marginTop: 6,
+    backgroundColor: '#fefce8',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#fde047',
+    marginTop: 6,
   },
   insightAlertText: { fontSize: 13, color: '#713f12' },
 
-  toolsTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 12 },
+  toolsTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 12,
+  },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 14 },
   gridItem: { width: '47%' },
   toolCard: { borderRadius: 16, padding: 16, gap: 8 },
   toolLabel: { fontSize: 14, fontWeight: '700', color: '#111827' },
   toolDesc: { fontSize: 12, color: '#6b7280', lineHeight: 16 },
 
-  supportHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  supportBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  supportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  supportBtn: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
   supportBtnText: { flex: 1, fontSize: 14, color: '#374151' },
 });

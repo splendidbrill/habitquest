@@ -70,7 +70,7 @@ export function Welcome() {
           ))}
         </View>
 
-        <Button size="lg" onPress={() => navigation.navigate('Onboarding')} style={styles.cta}>
+        <Button size="lg" onPress={() => navigation.navigate('IntroVideo')} style={styles.cta}>
           <Text style={styles.ctaText}>Get started</Text>
         </Button>
 

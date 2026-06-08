@@ -10,6 +10,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
 import { useAuth } from '../context/AuthContext';
 import { useChild } from '../context/ChildContext';
+import { useTTS } from '../hooks/useTTS';
+import { TTSInstallPrompt } from '../components/TTSInstallPrompt';
 import {
   getActiveAdventure, contributeToStage, tryAdvanceStage,
   getChildrenForParent, type ActiveAdventure,
@@ -33,6 +35,7 @@ export function FamilyAdventureDetail() {
   const { activeChild } = useChild();
 
   const isParentView = !activeChild;
+  const { read, showPrompt, setShowPrompt } = useTTS();
 
   const [active, setActive] = useState<ActiveAdventure | null>(null);
   const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
@@ -48,6 +51,14 @@ export function FamilyAdventureDetail() {
     setActive(adv);
     setChildren(kids);
     setLoading(false);
+
+    // Auto-read stage description when data loads
+    if (adv) {
+      const stage = adv.adventure.stages[stageIndex];
+      if (stage) {
+        read(`${stage.title}. ${stage.description}. ${isParentView ? 'Your task: ' + stage.parentTask : 'Your mission: ' + stage.childTask}`);
+      }
+    }
   }, [parentId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -99,6 +110,7 @@ export function FamilyAdventureDetail() {
 
   return (
     <SafeAreaView style={s.safe}>
+      <TTSInstallPrompt visible={showPrompt} onClose={() => setShowPrompt(false)} />
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
         {/* Header */}

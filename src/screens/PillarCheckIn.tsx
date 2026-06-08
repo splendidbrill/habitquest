@@ -9,11 +9,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { ArrowLeft, ChevronRight, Check } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, Check, Info, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useChild } from '../context/ChildContext';
 import { supabase } from '../lib/supabase';
 import { writeWeeklyPillarSnapshot } from '../services/pillarScore';
+import { Modal } from 'react-native';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type AgeGroup = '6-8' | '8-10' | '10-12';
@@ -132,6 +133,33 @@ const STEPS = [
   { key: 'confidence', emoji: '🧠', title: 'Confidence', color: ['#ec4899', '#db2777'] as [string, string] },
 ];
 
+const PILLAR_INFO: Record<string, { title: string; emoji: string; what: string; why: string; tips: string[] }> = {
+  nutrition: {
+    title: 'Nutrition', emoji: '🥕',
+    what: 'How well your child is eating — fruit, vegetables, family meals together, and avoiding sugary drinks.',
+    why: 'Good nutrition fuels energy, concentration, mood, and long-term health. Small daily choices add up to big results over time.',
+    tips: ['Aim for 5 fruit & veg portions a day', 'Water over juice with meals', 'Eating together as a family matters more than what you eat', 'Don\'t stress about perfection — variety over time is the goal'],
+  },
+  movement: {
+    title: 'Movement', emoji: '⚽',
+    what: 'How physically active your child is — sport sessions, active play, and time spent outdoors.',
+    why: 'Regular movement builds strength, improves sleep, boosts mood, and helps with focus at school.',
+    tips: ['60 minutes of activity a day is the target', 'Any movement counts — dancing, cycling, walking the dog', 'Outdoor play is especially beneficial', 'Structured sport AND free play both matter'],
+  },
+  sleep: {
+    title: 'Sleep', emoji: '😴',
+    what: 'How consistently your child is getting enough rest — bedtime routine, hours of sleep, and how energised they feel in the morning.',
+    why: 'Sleep is when the body and brain recover. Poor sleep affects mood, weight, learning, and immune function.',
+    tips: ['Ages 6-12 need 9-11 hours per night', 'A consistent bedtime matters more than the exact time', 'No screens 30 minutes before bed', 'A calm wind-down routine helps them fall asleep faster'],
+  },
+  confidence: {
+    title: 'Confidence', emoji: '🧠',
+    what: 'Your child\'s emotional wellbeing — their mood, how confident they feel, and whether they\'re joining in with activities and social situations.',
+    why: 'Confidence and emotional health underpin everything else. A child who feels good about themselves is more likely to try new foods, stay active, and build healthy habits.',
+    tips: ['Praise effort, not outcome', 'Let them make age-appropriate choices', 'Encourage one thing they find challenging each week', 'Talk about feelings regularly — it normalises emotional awareness'],
+  },
+};
+
 // ─── Stepper component ────────────────────────────────────────────────────────
 function Stepper({
   value, min, max, step = 1, onChange, isDark,
@@ -190,6 +218,7 @@ export function PillarCheckIn() {
   const [data, setData] = useState<CheckInData>({ ...DEFAULT_DATA });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [infoKey, setInfoKey] = useState<string | null>(null);
 
   const current = STEPS[step];
   const questions = QUESTIONS[ageGroup][current?.key as keyof Questions] ?? [];
@@ -277,6 +306,9 @@ export function PillarCheckIn() {
 
           {/* Step card */}
           <LinearGradient colors={current.color} style={s.stepCard}>
+            <TouchableOpacity style={s.infoBtn} onPress={() => setInfoKey(current.key)}>
+              <Info size={18} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
             <Text style={s.stepEmoji}>{current.emoji}</Text>
             <Text style={s.stepTitle}>{current.title}</Text>
           </LinearGradient>
@@ -309,37 +341,59 @@ export function PillarCheckIn() {
             ))}
           </View>
 
-          {/* Next / Save button */}
-          {step < 3 ? (
-            <TouchableOpacity activeOpacity={0.85} onPress={() => setStep(step + 1)}>
-              <LinearGradient
-                colors={current.color}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={s.nextBtn}
-              >
-                <Text style={s.nextBtnText}>Next</Text>
-                <ChevronRight size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity activeOpacity={0.85} onPress={handleSave} disabled={saving}>
-              <LinearGradient
-                colors={['#22c55e', '#16a34a']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={s.nextBtn}
-              >
-                {saving
-                  ? <ActivityIndicator color="#fff" />
-                  : <>
-                      <Check size={20} color="#fff" />
-                      <Text style={s.nextBtnText}>Save Check-in</Text>
-                    </>
-                }
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
         </ScrollView>
+
+        {/* Save / Next button — always visible outside scroll */}
+        {step < 3 ? (
+          <TouchableOpacity activeOpacity={0.85} onPress={() => setStep(step + 1)} style={s.stickyBtn}>
+            <LinearGradient colors={current.color} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.nextBtn}>
+              <Text style={s.nextBtnText}>Next</Text>
+              <ChevronRight size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity activeOpacity={0.85} onPress={handleSave} disabled={saving} style={s.stickyBtn}>
+            <LinearGradient colors={['#22c55e', '#16a34a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.nextBtn}>
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <><Check size={20} color="#fff" /><Text style={s.nextBtnText}>Save Check-in</Text></>
+              }
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Pillar info modal */}
+        <Modal visible={!!infoKey} transparent animationType="slide" onRequestClose={() => setInfoKey(null)}>
+          <View style={s.infoOverlay}>
+            <View style={s.infoSheet}>
+              {infoKey && PILLAR_INFO[infoKey] && (() => {
+                const info = PILLAR_INFO[infoKey];
+                return (
+                  <>
+                    <View style={s.infoHeader}>
+                      <Text style={s.infoEmoji}>{info.emoji}</Text>
+                      <Text style={s.infoTitle}>{info.title}</Text>
+                      <TouchableOpacity onPress={() => setInfoKey(null)} style={s.infoClose}>
+                        <X size={20} color="#6b7280" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={s.infoWhat}>{info.what}</Text>
+                    <Text style={s.infoWhyLabel}>Why it matters</Text>
+                    <Text style={s.infoWhy}>{info.why}</Text>
+                    <Text style={s.infoWhyLabel}>Tips</Text>
+                    {info.tips.map((t, i) => (
+                      <View key={i} style={s.infoTipRow}>
+                        <Text style={s.infoTipBullet}>•</Text>
+                        <Text style={s.infoTipText}>{t}</Text>
+                      </View>
+                    ))}
+                  </>
+                );
+              })()}
+            </View>
+          </View>
+        </Modal>
+
       </SafeAreaView>
     </LinearGradient>
   );
@@ -357,7 +411,7 @@ function getWeekStart(): string {
 const s = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48 },
+  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
 
   header: {
     flexDirection: 'row', alignItems: 'center',
@@ -415,11 +469,32 @@ const s = StyleSheet.create({
   emojiLabel: { fontSize: 11, fontWeight: '700', color: '#f97316', marginTop: 2 },
 
   // Buttons
+  stickyBtn: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 8 },
   nextBtn: {
     borderRadius: 50, paddingVertical: 18, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   nextBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+
+  // Info button on step card
+  infoBtn: { position: 'absolute', top: 12, right: 12, padding: 4 },
+
+  // Pillar info modal
+  infoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  infoSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 24, paddingBottom: 40, maxHeight: '85%',
+  },
+  infoHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  infoEmoji: { fontSize: 32 },
+  infoTitle: { flex: 1, fontSize: 22, fontWeight: '800', color: '#111827' },
+  infoClose: { padding: 4 },
+  infoWhat: { fontSize: 15, color: '#374151', lineHeight: 23, marginBottom: 20 },
+  infoWhyLabel: { fontSize: 12, fontWeight: '700', color: '#f97316', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  infoWhy: { fontSize: 14, color: '#4b5563', lineHeight: 22, marginBottom: 20 },
+  infoTipRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  infoTipBullet: { fontSize: 14, color: '#f97316', lineHeight: 22 },
+  infoTipText: { flex: 1, fontSize: 14, color: '#374151', lineHeight: 22 },
 
   // Done
   doneContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },

@@ -286,3 +286,67 @@ CREATE POLICY "streak_freeze_own" ON streak_freeze_usage
   FOR ALL USING (
     child_id IN (SELECT id FROM children WHERE parent_id = auth.uid())
   );
+
+-- ============================================================
+-- FAMILY PROFILES (migration 006)
+-- Synced mirror of the on-device canonical FamilyProfile.
+-- ============================================================
+CREATE TABLE family_profiles (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  parent_id   UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  profile     JSONB NOT NULL DEFAULT '{}',
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE family_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "family_profiles_own" ON family_profiles
+  FOR ALL USING (parent_id = auth.uid());
+
+-- ============================================================
+-- PREFERENCE SIGNALS (migration 007)
+-- Unified preference event log feeding the Phase 4 engine.
+-- ============================================================
+CREATE TABLE preference_signals (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  child_id    UUID REFERENCES children(id) ON DELETE CASCADE NOT NULL,
+  kind        TEXT NOT NULL CHECK (kind IN ('meal', 'activity')),
+  ref_id      TEXT,
+  attribute   TEXT NOT NULL,
+  value       TEXT NOT NULL,
+  weight      INT  NOT NULL DEFAULT 1,
+  source      TEXT NOT NULL CHECK (source IN ('swipe', 'completion', 'micro_q')),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX preference_signals_child_idx ON preference_signals (child_id);
+
+ALTER TABLE preference_signals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "preference_signals_own" ON preference_signals
+  FOR ALL USING (
+    child_id IN (SELECT id FROM children WHERE parent_id = auth.uid())
+  );
+
+-- ============================================================
+-- MEAL FEEDBACK (migration 008)
+-- "Did everyone actually eat it?" — 4-state reaction, mirrored
+-- into preference_signals (source='completion') by the app.
+-- Do NOT overload food_logs.action for this.
+-- ============================================================
+CREATE TABLE meal_feedback (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  child_id    UUID REFERENCES children(id) ON DELETE CASCADE NOT NULL,
+  meal_ref    TEXT NOT NULL,
+  reaction    TEXT NOT NULL CHECK (reaction IN ('everyone_ate', 'most_ate', 'mixed', 'disaster')),
+  logged_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX meal_feedback_child_idx ON meal_feedback (child_id);
+
+ALTER TABLE meal_feedback ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "meal_feedback_own" ON meal_feedback
+  FOR ALL USING (
+    child_id IN (SELECT id FROM children WHERE parent_id = auth.uid())
+  );

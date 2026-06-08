@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal,
 } from 'react-native';
@@ -6,7 +6,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
-import { ArrowLeft, MessageCircle, Zap } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, Zap, Volume2, VolumeX } from 'lucide-react-native';
+import { useTTS } from '../../hooks/useTTS';
+import { TTSInstallPrompt } from '../../components/TTSInstallPrompt';
 
 const coachQuestions = [
   { id: 'before-football', question: 'What should I eat before football?', emoji: '⚽', answer: 'Eat 1-2 hours before playing. Best choices: banana, toast with peanut butter, or a small bowl of porridge. These give you energy that lasts the whole game!', tip: 'Pro footballers eat bananas 30 mins before kickoff. It\'s quick energy that won\'t make you feel heavy!' },
@@ -26,6 +28,18 @@ const coachQuestions = [
 export function Kids8AskCoach() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selectedQ, setSelectedQ] = useState<typeof coachQuestions[0] | null>(null);
+  const { read, toggle, stop, speaking, showPrompt, setShowPrompt } = useTTS({
+    autoRead: 'Welcome to Ask Coach. Tap any question to hear expert advice.',
+  });
+
+  // Auto-read when a question is opened
+  useEffect(() => {
+    if (selectedQ) {
+      read(`${selectedQ.answer} Pro tip: ${selectedQ.tip}`);
+    } else {
+      stop();
+    }
+  }, [selectedQ]);
 
   return (
     <LinearGradient colors={['#0f172a', '#3b0764', '#0f172a']} style={styles.container}>
@@ -64,6 +78,8 @@ export function Kids8AskCoach() {
           </View>
         </ScrollView>
 
+        <TTSInstallPrompt visible={showPrompt} onClose={() => setShowPrompt(false)} />
+
         <Modal visible={!!selectedQ} transparent animationType="slide" onRequestClose={() => setSelectedQ(null)}>
           <View style={styles.modalOverlay}>
             {selectedQ && (
@@ -76,6 +92,15 @@ export function Kids8AskCoach() {
                   <View style={styles.answerHeader}>
                     <Text style={{ fontSize: 22, marginRight: 8 }}>👨‍🏫</Text>
                     <Text style={styles.coachSays}>Coach Says:</Text>
+                    <TouchableOpacity
+                      onPress={() => selectedQ && toggle(`${selectedQ.answer} Pro tip: ${selectedQ.tip}`)}
+                      style={styles.speakBtn}
+                    >
+                      {speaking
+                        ? <VolumeX size={18} color="#c084fc" />
+                        : <Volume2 size={18} color="#c084fc" />
+                      }
+                    </TouchableOpacity>
                   </View>
                   <Text style={styles.answerText}>{selectedQ.answer}</Text>
                 </View>
@@ -86,7 +111,7 @@ export function Kids8AskCoach() {
                     <Text style={styles.proTipText}>{selectedQ.tip}</Text>
                   </View>
                 </View>
-                <TouchableOpacity activeOpacity={0.85} onPress={() => setSelectedQ(null)}>
+                <TouchableOpacity activeOpacity={0.85} onPress={() => { stop(); setSelectedQ(null); }}>
                   <LinearGradient colors={['#9333ea', '#db2777']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.thanksBtn}>
                     <Text style={styles.thanksBtnText}>Thanks, Coach! 💪</Text>
                   </LinearGradient>
@@ -122,7 +147,8 @@ const styles = StyleSheet.create({
   modalQuestion: { fontSize: 16, fontWeight: '800', color: '#fff', textAlign: 'center' },
   answerBox: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
   answerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  coachSays: { fontSize: 14, fontWeight: '800', color: '#93c5fd' },
+  coachSays: { fontSize: 14, fontWeight: '800', color: '#93c5fd', flex: 1 },
+  speakBtn: { padding: 6 },
   answerText: { fontSize: 14, color: '#fff', lineHeight: 20 },
   proTipBox: { flexDirection: 'row', backgroundColor: 'rgba(234,88,12,0.15)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)', marginBottom: 16 },
   proTipLabel: { fontSize: 12, fontWeight: '800', color: '#fb923c', marginBottom: 2 },
