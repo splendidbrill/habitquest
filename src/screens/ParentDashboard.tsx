@@ -24,6 +24,9 @@ import {
   Users,
   Sparkles,
   Volume2,
+  Dna,
+  Flame,
+  Activity,
 } from 'lucide-react-native';
 import { useTTS } from '../hooks/useTTS';
 import { TTSInstallPrompt } from '../components/TTSInstallPrompt';
@@ -33,6 +36,11 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
 import { useParentData, ChildSummary } from '../hooks/useParentData';
 import { MicroQuestionCard } from '../components/MicroQuestionCard';
+import { ProgressBar } from '../components/ui/ProgressBar';
+import {
+  computePreferenceModel,
+  type PreferenceModel,
+} from '../services/preferenceEngine';
 import type { Pillar } from '../services/syncService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -67,6 +75,49 @@ function scoreLabel(score: number): string {
   if (score >= 70) return 'Strong';
   if (score >= 40) return 'Building';
   return 'Needs focus';
+}
+
+// Pretty-print a model label like "team_sport" / "indian" → "Team Sport".
+function titleCase(s: string): string {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Distinct palettes so cuisine vs activity bars read as different "DNA strands".
+const CUISINE_COLORS = ['#f97316', '#ea580c', '#d97706', '#ca8a04', '#b45309'];
+const ACTIVITY_COLORS = ['#3b82f6', '#2563eb', '#7c3aed', '#0891b2', '#0d9488'];
+
+// ─── Activity Arena (qualitative progress, never raw minutes) ──────────────────
+type ArenaStats = {
+  streak: number;
+  activeDays: number;
+  movers: { pillar: Pillar; delta: number }[];
+};
+
+function buildArenaStats(child: ChildSummary): ArenaStats {
+  // Active days this week — distinct completion dates within the last 7 days.
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const days = new Set<string>();
+  for (const m of child.recentMissions) {
+    if (!m.completed_at) continue;
+    if (new Date(m.completed_at).getTime() >= weekAgo) {
+      days.add(m.completed_at.split('T')[0]);
+    }
+  }
+
+  // Pillar momentum — this week vs last week from pillarHistory (index 0 = now).
+  const movers: { pillar: Pillar; delta: number }[] = [];
+  const hist = child.pillarHistory;
+  if (hist.length > 1 && hist[0] && hist[1]) {
+    const pillars: Pillar[] = ['nutrition', 'movement', 'sleep', 'confidence'];
+    for (const p of pillars) {
+      const key = `${p}_score`;
+      const delta = Number(hist[0][key] ?? 0) - Number(hist[1][key] ?? 0);
+      if (delta > 0) movers.push({ pillar: p, delta });
+    }
+    movers.sort((a, b) => b.delta - a.delta);
+  }
+
+  return { streak: child.streak, activeDays: Math.min(days.size, 7), movers };
 }
 
 // ─── Pillar detail bar ────────────────────────────────────────────────────────
@@ -203,6 +254,8 @@ export function ParentDashboard() {
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [digest, setDigest] = useState<ParentDigest | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
+  const [dna, setDna] = useState<PreferenceModel | null>(null);
+  const [dnaLoading, setDnaLoading] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -224,6 +277,27 @@ export function ParentDashboard() {
         setDigestLoading(false);
       })
       .catch(() => setDigestLoading(false));
+  }, [child?.id]);
+
+  // Family "Health DNA" — best-effort, deterministic, no AI call.
+  useEffect(() => {
+    if (!child?.id) return;
+    let cancelled = false;
+    setDna(null);
+    setDnaLoading(true);
+    computePreferenceModel(child.id)
+      .then(model => {
+        if (!cancelled) {
+          setDna(model);
+          setDnaLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDnaLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [child?.id]);
 
   const focusPillar = journey?.focusPillar ?? 'nutrition';
@@ -303,6 +377,131 @@ export function ParentDashboard() {
                 />
               ))}
             </View>
+
+            {/* Family Preference — "Health DNA" */}
+            <View style={d.sectionCard}>
+              <View style={d.dnaHeader}>
+                <Dna size={16} color="#7c3aed" />
+                <Text style={[d.sectionTitle, { marginBottom: 0 }]}>
+                  Family Health DNA
+                </Text>
+              </View>
+              {dnaLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#7c3aed"
+                  style={{ marginTop: 14 }}
+                />
+              ) : dna?.hasSignal ? (
+                <>
+                  {dna.topCuisines.length > 0 && (
+                    <View style={d.dnaGroup}>
+                      <Text style={d.dnaGroupLabel}>Food we lean towards</Text>
+                      {dna.topCuisines.map((c, i) => (
+                        <View key={c.label} style={d.dnaRow}>
+                          <Text style={d.dnaRowLabel}>
+                            {titleCase(c.label)}
+                          </Text>
+                          <View style={d.dnaRowBar}>
+                            <ProgressBar
+                              value={c.pct}
+                              total={100}
+                              color={CUISINE_COLORS[i % CUISINE_COLORS.length]}
+                            />
+                          </View>
+                          <Text style={d.dnaRowPct}>{c.pct}%</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  {dna.topActivities.length > 0 && (
+                    <View style={d.dnaGroup}>
+                      <Text style={d.dnaGroupLabel}>How we like to move</Text>
+                      {dna.topActivities.map((a, i) => (
+                        <View key={a.label} style={d.dnaRow}>
+                          <Text style={d.dnaRowLabel}>
+                            {titleCase(a.label)}
+                          </Text>
+                          <View style={d.dnaRowBar}>
+                            <ProgressBar
+                              value={a.pct}
+                              total={100}
+                              color={
+                                ACTIVITY_COLORS[i % ACTIVITY_COLORS.length]
+                              }
+                            />
+                          </View>
+                          <Text style={d.dnaRowPct}>{a.pct}%</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  <Text style={d.dnaNote}>
+                    Built from your swipes, choices and what {child.name}{' '}
+                    actually enjoys — it sharpens as you go.
+                  </Text>
+                </>
+              ) : (
+                <View style={d.dnaEmpty}>
+                  <Text style={d.dnaEmptyEmoji}>🧬</Text>
+                  <Text style={d.dnaEmptyText}>
+                    We're still learning your family. As you swipe meals, pick
+                    activities and complete quests, {child.name}'s Health DNA
+                    will appear here.
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Activity Arena Progress — qualitative, never raw minutes */}
+            {(() => {
+              const arena = buildArenaStats(child);
+              return (
+                <View style={d.sectionCard}>
+                  <View style={d.dnaHeader}>
+                    <Activity size={16} color="#ea580c" />
+                    <Text style={[d.sectionTitle, { marginBottom: 0 }]}>
+                      Activity Arena Progress
+                    </Text>
+                  </View>
+                  <View style={d.arenaStatsRow}>
+                    <View style={d.arenaStat}>
+                      <Flame size={18} color="#f97316" />
+                      <Text style={d.arenaStatValue}>{arena.streak}</Text>
+                      <Text style={d.arenaStatLabel}>day streak</Text>
+                    </View>
+                    <View style={d.arenaStat}>
+                      <Text style={d.arenaStatEmoji}>⚡</Text>
+                      <Text style={d.arenaStatValue}>{arena.activeDays}/7</Text>
+                      <Text style={d.arenaStatLabel}>active days</Text>
+                    </View>
+                  </View>
+                  {arena.movers.length > 0 ? (
+                    <View style={d.arenaMovers}>
+                      {arena.movers.map(m => (
+                        <View key={m.pillar} style={d.arenaMoverRow}>
+                          <Text style={d.arenaMoverEmoji}>
+                            {PILLAR_CONFIG[m.pillar].emoji}
+                          </Text>
+                          <Text style={d.arenaMoverText}>
+                            {PILLAR_CONFIG[m.pillar].label} skills
+                          </Text>
+                          <View style={d.arenaMoverBadge}>
+                            <TrendingUp size={12} color="#16a34a" />
+                            <Text style={d.arenaMoverDelta}>+{m.delta}%</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={d.arenaNote}>
+                      Complete a few quests this week to see {child.name}'s
+                      skills climb.
+                    </Text>
+                  )}
+                </View>
+              );
+            })()}
 
             {/* Weekly AI Insight */}
             {(digestLoading || digest) && (
@@ -828,6 +1027,79 @@ const d = StyleSheet.create({
     marginTop: 6,
   },
   insightAlertText: { fontSize: 13, color: '#713f12' },
+
+  dnaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  dnaGroup: { marginBottom: 16 },
+  dnaGroupLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  dnaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  dnaRowLabel: { width: 90, fontSize: 13, color: '#374151', fontWeight: '600' },
+  dnaRowBar: { flex: 1 },
+  dnaRowPct: {
+    width: 38,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'right',
+  },
+  dnaNote: { fontSize: 12, color: '#9ca3af', lineHeight: 17 },
+  dnaEmpty: { alignItems: 'center', paddingVertical: 8 },
+  dnaEmptyEmoji: { fontSize: 32, marginBottom: 8 },
+  dnaEmptyText: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+
+  arenaStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  arenaStat: {
+    flex: 1,
+    backgroundColor: '#fff7ed',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    gap: 2,
+  },
+  arenaStatEmoji: { fontSize: 18 },
+  arenaStatValue: { fontSize: 22, fontWeight: '900', color: '#111827' },
+  arenaStatLabel: { fontSize: 11, color: '#6b7280', fontWeight: '600' },
+  arenaMovers: { gap: 8 },
+  arenaMoverRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  arenaMoverEmoji: { fontSize: 18 },
+  arenaMoverText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  arenaMoverBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  arenaMoverDelta: { fontSize: 13, fontWeight: '800', color: '#16a34a' },
+  arenaNote: { fontSize: 12, color: '#9ca3af', lineHeight: 17 },
 
   toolsTitle: {
     fontSize: 16,

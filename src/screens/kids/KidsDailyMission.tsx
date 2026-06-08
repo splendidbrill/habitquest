@@ -13,34 +13,94 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
+import catalogMissions from '../../data/missionCatalog';
+
+// This screen's local missions predate the catalog and carry no catalog id,
+// so recover the real CatalogMission (→ tags) by title. Local titles append an
+// emoji ("Jump Like 5 Animals! 🦘"); the catalog title is the emoji-free prefix.
+function matchCatalog(localTitle: string) {
+  return catalogMissions.find(m => localTitle.startsWith(m.title));
+}
 
 const missions = [
-  { id: 'jump-animals', title: 'Jump Like 5 Animals! 🦘', emoji: '🦘', description: 'Jump like a kangaroo, frog, bunny, monkey, and tiger!', duration: '5 minutes', colors: ['#fb923c', '#ef4444'] as [string, string] },
-  { id: 'dance-party', title: 'Dance for 5 Minutes! 💃', emoji: '💃', description: 'Put on your favourite song and dance!', duration: '5 minutes', colors: ['#c084fc', '#ec4899'] as [string, string] },
-  { id: 'try-fruit', title: 'Try One New Fruit! 🍎', emoji: '🍎', description: 'Ask a grown-up to help you pick a new fruit to taste!', duration: 'Anytime', colors: ['#4ade80', '#10b981'] as [string, string] },
-  { id: 'playground-time', title: 'Play at the Park! ⚽', emoji: '⚽', description: 'Go outside and play - run, swing, or kick a ball!', duration: '30 minutes', colors: ['#60a5fa', '#06b6d4'] as [string, string] },
-  { id: 'bike-ride', title: 'Bike Ride Adventure! 🚲', emoji: '🚲', description: 'Go for a bike ride with family!', duration: '20 minutes', colors: ['#2dd4bf', '#22c55e'] as [string, string] },
+  {
+    id: 'jump-animals',
+    title: 'Jump Like 5 Animals! 🦘',
+    emoji: '🦘',
+    description: 'Jump like a kangaroo, frog, bunny, monkey, and tiger!',
+    duration: '5 minutes',
+    colors: ['#fb923c', '#ef4444'] as [string, string],
+  },
+  {
+    id: 'dance-party',
+    title: 'Dance for 5 Minutes! 💃',
+    emoji: '💃',
+    description: 'Put on your favourite song and dance!',
+    duration: '5 minutes',
+    colors: ['#c084fc', '#ec4899'] as [string, string],
+  },
+  {
+    id: 'try-fruit',
+    title: 'Try One New Fruit! 🍎',
+    emoji: '🍎',
+    description: 'Ask a grown-up to help you pick a new fruit to taste!',
+    duration: 'Anytime',
+    colors: ['#4ade80', '#10b981'] as [string, string],
+  },
+  {
+    id: 'playground-time',
+    title: 'Play at the Park! ⚽',
+    emoji: '⚽',
+    description: 'Go outside and play - run, swing, or kick a ball!',
+    duration: '30 minutes',
+    colors: ['#60a5fa', '#06b6d4'] as [string, string],
+  },
+  {
+    id: 'bike-ride',
+    title: 'Bike Ride Adventure! 🚲',
+    emoji: '🚲',
+    description: 'Go for a bike ride with family!',
+    duration: '20 minutes',
+    colors: ['#2dd4bf', '#22c55e'] as [string, string],
+  },
 ];
 
 export function KidsDailyMission() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const today = new Date().getDate();
   const mission = missions[today % missions.length];
   const [missionStarted, setMissionStarted] = useState(false);
 
   const handleComplete = async () => {
     await storage.setItem('kidsMissionCompleted', 'true');
-    const adventures = parseInt((await storage.getItem('kidsAdventuresCompleted')) ?? '0');
+    const adventures = parseInt(
+      (await storage.getItem('kidsAdventuresCompleted')) ?? '0',
+    );
     await storage.setItem('kidsAdventuresCompleted', String(adventures + 1));
-    navigation.navigate('KidsSuccessCelebration');
+    const catalog = matchCatalog(mission.title);
+    navigation.navigate('KidsSuccessCelebration', {
+      missionId: catalog?.id,
+      missionTitle: catalog?.title ?? mission.title,
+      tags: catalog?.tags,
+    });
   };
 
   return (
-    <LinearGradient colors={['#bae6fd', '#ede9fe', '#fce7f3']} style={styles.container}>
+    <LinearGradient
+      colors={['#bae6fd', '#ede9fe', '#fce7f3']}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+            >
               <ArrowLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text style={styles.headerEmoji}>🐯</Text>
@@ -50,7 +110,10 @@ export function KidsDailyMission() {
             <>
               <Text style={styles.title}>Today's Mission! 🎯</Text>
 
-              <LinearGradient colors={mission.colors} style={styles.missionCard}>
+              <LinearGradient
+                colors={mission.colors}
+                style={styles.missionCard}
+              >
                 <Text style={styles.missionEmoji}>{mission.emoji}</Text>
                 <Text style={styles.missionTitle}>{mission.title}</Text>
                 <Text style={styles.missionDesc}>{mission.description}</Text>
@@ -59,8 +122,14 @@ export function KidsDailyMission() {
                 </View>
               </LinearGradient>
 
-              <TouchableOpacity activeOpacity={0.85} onPress={() => setMissionStarted(true)}>
-                <LinearGradient colors={['#4ade80', '#10b981', '#0d9488']} style={styles.actionBtn}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setMissionStarted(true)}
+              >
+                <LinearGradient
+                  colors={['#4ade80', '#10b981', '#0d9488']}
+                  style={styles.actionBtn}
+                >
                   <Text style={styles.actionBtnText}>Start Mission! 🚀</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -70,10 +139,15 @@ export function KidsDailyMission() {
               <Text style={styles.buddyEmoji}>🐯</Text>
               <Text style={styles.missionEmoji2}>{mission.emoji}</Text>
               <Text style={styles.inProgressTitle}>You're Doing Great! 🌟</Text>
-              <Text style={styles.inProgressDesc}>Have fun! When you're done, tap below!</Text>
+              <Text style={styles.inProgressDesc}>
+                Have fun! When you're done, tap below!
+              </Text>
 
               <TouchableOpacity activeOpacity={0.85} onPress={handleComplete}>
-                <LinearGradient colors={['#c084fc', '#ec4899', '#fb7185']} style={styles.actionBtn}>
+                <LinearGradient
+                  colors={['#c084fc', '#ec4899', '#fb7185']}
+                  style={styles.actionBtn}
+                >
                   <Text style={styles.actionBtnText}>I'm Done! 🎉</Text>
                 </LinearGradient>
               </TouchableOpacity>

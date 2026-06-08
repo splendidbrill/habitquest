@@ -87,4 +87,41 @@ export const microQuestions: MicroQuestion[] = [
       { label: '🧘 Calm & wind-down', value: 'calm' },
     ],
   },
+  // ── Demoted Layer-2 onboarding questions, surfaced here progressively ──
+  // (Onboarding ids 4 and 9 — the genuinely preference-shaped ones.)
+  //
+  // NOTE: the other demoted Layer-2 questions (id 7 "how active currently",
+  // ids 18/19/20 family personality/reward timing) are intentionally NOT
+  // surfaced as micro-questions: they describe family STYLE, not meal/activity
+  // preferences, so forcing them through preference_signals would pollute the
+  // Health DNA cuisine/activity/tag scores. They belong in the FamilyProfile,
+  // not the preference engine.
+  {
+    // From onboarding id 4 — "Which food groups does your family regularly eat?"
+    id: 'mq-staples',
+    prompt: 'Which of these does your family cook with most?',
+    kind: 'meal',
+    attribute: 'tag',
+    options: [
+      { label: '🍗 Chicken & meat', value: 'protein' },
+      { label: '🐟 Fish', value: 'fish' },
+      { label: '🍚 Rice & grains', value: 'rice' },
+      { label: '🥦 Fresh vegetables', value: 'vegetables' },
+      { label: '🍎 Fresh fruit', value: 'fruit' },
+    ],
+  },
+  {
+    // From onboarding id 9 — "What equipment or items do you have at home?"
+    id: 'mq-equipment',
+    prompt: 'What does your child have to play with at home?',
+    kind: 'activity',
+    attribute: 'category',
+    options: [
+      { label: '⚽ A ball', value: 'ball_sport' },
+      { label: '🚲 Bike or scooter', value: 'cycling' },
+      { label: '🌳 Garden / outdoor space', value: 'outdoor_play' },
+      { label: '🪢 Skipping rope', value: 'strength' },
+      { label: '🤸 Just us — bodies are enough', value: 'strength' },
+    ],
+  },
 ];

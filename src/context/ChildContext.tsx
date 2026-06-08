@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { loadChildSnapshot } from '../services/syncService';
-import { scheduleDailyNotifications, registerChildPushToken } from '../services/notificationService';
+import {
+  scheduleDailyNotifications,
+  registerChildPushToken,
+} from '../services/notificationService';
+import { flushSwipeSignals } from '../services/preferenceEngine';
 
 export type ChildProfile = {
   id: string;
@@ -36,7 +40,9 @@ const ChildContext = createContext<ChildContextType>({
 });
 
 export function ChildProvider({ children }: { children: React.ReactNode }) {
-  const [activeChild, setActiveChildState] = useState<ChildProfile | null>(null);
+  const [activeChild, setActiveChildState] = useState<ChildProfile | null>(
+    null,
+  );
   const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
 
   // When a child profile is selected, pull the latest snapshot from Supabase
@@ -62,6 +68,11 @@ export function ChildProvider({ children }: { children: React.ReactNode }) {
     // Schedule daily notifications for this child and register their push token
     scheduleDailyNotifications(child.name).catch(() => {});
     registerChildPushToken(child.id).catch(() => {});
+
+    // Mirror this device's onboarding food/activity swipes into preference_signals
+    // now that a child row exists. Idempotent per-child (swipeSignalsFlushed flag),
+    // best-effort — retries on the next selection if offline.
+    flushSwipeSignals(child.id).catch(() => {});
   }, []);
 
   const refreshChild = useCallback(async () => {
@@ -74,7 +85,9 @@ export function ChildProvider({ children }: { children: React.ReactNode }) {
   }, [activeChild]);
 
   return (
-    <ChildContext.Provider value={{ activeChild, earnedBadges, setActiveChild, refreshChild }}>
+    <ChildContext.Provider
+      value={{ activeChild, earnedBadges, setActiveChild, refreshChild }}
+    >
       {children}
     </ChildContext.Provider>
   );

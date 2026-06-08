@@ -34,6 +34,7 @@ import {
   loadFamilyProfile,
   type FamilyProfile,
 } from '../../data/familyProfile';
+import { flushVideoAnalytics } from '../../services/videoAnalytics';
 import { colors } from '../../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'IntroVideo'>;
@@ -173,6 +174,9 @@ function EndCard() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    // The parent is authenticated by the end-card → flush the intro's
+    // AsyncStorage analytics into the DB (best-effort, idempotent).
+    flushVideoAnalytics();
     loadFamilyProfile()
       .then(p => {
         setProfile(p);

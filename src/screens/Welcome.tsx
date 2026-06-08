@@ -39,12 +39,19 @@ export function Welcome() {
 
   return (
     <LinearGradient
-      colors={[withOpacity(colors.primary, 0.1), colors.background, withOpacity(colors.secondary, 0.1)]}
+      colors={[
+        withOpacity(colors.primary, 0.1),
+        colors.background,
+        withOpacity(colors.secondary, 0.1),
+      ]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.gradient}
     >
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Heart size={40} color={colors.secondaryForeground} />
@@ -53,7 +60,8 @@ export function Welcome() {
 
         <Text style={styles.title}>Welcome to HealthySteps</Text>
         <Text style={styles.subtitle}>
-          Supporting UK parents with simple, culturally-appropriate meal ideas and fun activities for children aged 7–11
+          Supporting UK parents with simple, culturally-appropriate meal ideas
+          and fun activities for children aged 7–11
         </Text>
 
         <View style={styles.benefitsList}>
@@ -70,11 +78,17 @@ export function Welcome() {
           ))}
         </View>
 
-        <Button size="lg" onPress={() => navigation.navigate('IntroVideo')} style={styles.cta}>
+        <Button
+          size="lg"
+          onPress={() => navigation.navigate('IntroVideo')}
+          style={styles.cta}
+        >
           <Text style={styles.ctaText}>Get started</Text>
         </Button>
 
-        <Text style={styles.footerNote}>Takes about 2 minutes to personalise your plan</Text>
+        <Text style={styles.footerNote}>
+          Takes about 2 minutes to personalise your plan
+        </Text>
       </ScrollView>
     </LinearGradient>
   );

@@ -171,7 +171,9 @@ export type RootStackParamList = {
   KidsBuddyHome: undefined;
   KidsAvatarStatus: undefined;
   KidsDailyMission: undefined;
-  KidsSuccessCelebration: undefined;
+  KidsSuccessCelebration:
+    | { missionId?: string; missionTitle?: string; tags?: string[] }
+    | undefined;
   KidsDinnerChoice: undefined;
   KidsVeggieSelector: undefined;
   KidsKitchenHelper: undefined;

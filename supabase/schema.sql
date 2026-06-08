@@ -350,3 +350,25 @@ CREATE POLICY "meal_feedback_own" ON meal_feedback
   FOR ALL USING (
     child_id IN (SELECT id FROM children WHERE parent_id = auth.uid())
   );
+
+-- ============================================================
+-- VIDEO ANALYTICS (migration 009)
+-- Onboarding intro-video retention signal. Parent-owned (runs
+-- before any child exists). AsyncStorage is written during the
+-- pre-auth intro; the app flushes it here once authenticated.
+-- ============================================================
+CREATE TABLE video_analytics (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  parent_id       UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  watched         BOOLEAN NOT NULL DEFAULT FALSE,
+  skipped         BOOLEAN NOT NULL DEFAULT FALSE,
+  percent_watched INT     NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX video_analytics_parent_idx ON video_analytics (parent_id);
+
+ALTER TABLE video_analytics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "video_analytics_own" ON video_analytics
+  FOR ALL USING (parent_id = auth.uid());
