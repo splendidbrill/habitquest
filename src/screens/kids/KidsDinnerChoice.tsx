@@ -15,16 +15,49 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
+import {
+  getTodaysMealOptions,
+  type DayMeal,
+} from '../../services/weeklyPlanStore';
 
-const mealOptions = [
-  { id: 'dal-rice', name: 'Dal & Rice Bowl', emoji: '🍚', description: 'Warm dal with fluffy rice', colors: ['#fbbf24', '#fb923c'] as [string, string], benefits: ['💪 Protein helps your muscles grow strong!', '⚡ Rice gives you energy that lasts all day!', '🧠 Dal has iron that helps your brain think!'] },
-  { id: 'veggie-curry', name: 'Veggie Curry', emoji: '🍛', description: 'Colourful mixed vegetables', colors: ['#4ade80', '#10b981'] as [string, string], benefits: ['👀 Carrots help you see better!', '🦴 Potatoes keep your bones super strong!', '❤️ Peas help your heart stay healthy!'] },
-  { id: 'roti-sabzi', name: 'Roti & Sabzi', emoji: '🫓', description: 'Fresh roti with tasty sabzi', colors: ['#2dd4bf', '#06b6d4'] as [string, string], benefits: ['🏃 Whole wheat gives you lasting energy!', '🦷 Paneer makes your teeth super strong!', '🌟 Fibre keeps your tummy happy all day!'] },
-  { id: 'biryani', name: 'Veggie Biryani', emoji: '🍲', description: 'Fragrant rice with vegetables', colors: ['#fb923c', '#ef4444'] as [string, string], benefits: ['🧠 Spices help your brain work faster!', '🛡️ Vegetables protect you from getting sick!', '⚡ Rice gives you quick energy to play!'] },
+// Kid-friendly card derived from a shared weekly-plan meal, so the child's
+// "Choose Dinner" options always match the parent's weekly plan.
+type DinnerCard = {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  colors: [string, string];
+  benefits: string[];
+  isToday: boolean;
+};
+
+const PALETTE: { emoji: string; colors: [string, string] }[] = [
+  { emoji: '🍝', colors: ['#fbbf24', '#fb923c'] },
+  { emoji: '🍛', colors: ['#4ade80', '#10b981'] },
+  { emoji: '🫓', colors: ['#2dd4bf', '#06b6d4'] },
+  { emoji: '🍲', colors: ['#fb923c', '#ef4444'] },
 ];
 
+function toDinnerCard(meal: DayMeal, i: number, isToday: boolean): DinnerCard {
+  const p = PALETTE[i % PALETTE.length];
+  const benefits = [`⚡ ${meal.reason}`];
+  if (meal.whyHealthier) benefits.push(`🌟 ${meal.whyHealthier}`);
+  benefits.push('💪 Real food gives you energy to play, learn and grow!');
+  return {
+    id: meal.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    name: meal.name,
+    emoji: p.emoji,
+    description: meal.reason,
+    colors: p.colors,
+    benefits,
+    isToday,
+  };
+}
+
 export function KidsDinnerChoice() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -32,10 +65,24 @@ export function KidsDinnerChoice() {
   const [mealEaten, setMealEaten] = useState(false);
   const [pin, setPin] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [mealOptions, setMealOptions] = useState<DinnerCard[]>([]);
 
   useEffect(() => {
-    storage.getItem('kidsTodaysDinnerVote').then(v => { if (v) { setHasVoted(true); setSelectedMeal(v); } });
-    storage.getItem('kidsTodaysDinnerEaten').then(v => setMealEaten(v === 'true'));
+    storage.getItem('kidsTodaysDinnerVote').then(v => {
+      if (v) {
+        setHasVoted(true);
+        setSelectedMeal(v);
+      }
+    });
+    storage
+      .getItem('kidsTodaysDinnerEaten')
+      .then(v => setMealEaten(v === 'true'));
+    // Pull today's options from the shared weekly plan (matches parent interface).
+    getTodaysMealOptions(4).then(({ today, options }) => {
+      setMealOptions(
+        options.map((m, i) => toDinnerCard(m, i, m.name === today.meal.name)),
+      );
+    });
   }, []);
 
   const handleVote = (mealId: string) => {
@@ -69,11 +116,20 @@ export function KidsDinnerChoice() {
   const currentMeal = mealOptions.find(m => m.id === selectedMeal);
 
   return (
-    <LinearGradient colors={['#fef3c7', '#fed7aa', '#d1fae5']} style={styles.container}>
+    <LinearGradient
+      colors={['#fef3c7', '#fed7aa', '#d1fae5']}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+            >
               <ArrowLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Choose Dinner!</Text>
@@ -85,8 +141,12 @@ export function KidsDinnerChoice() {
               <View style={styles.infoCard}>
                 <Text style={styles.infoEmoji}>👨‍🍳</Text>
                 <View style={styles.infoText}>
-                  <Text style={styles.infoTitle}>Your Choice Helps the Team!</Text>
-                  <Text style={styles.infoDesc}>Pick what sounds yummy and learn why it's great for you</Text>
+                  <Text style={styles.infoTitle}>
+                    Your Choice Helps the Team!
+                  </Text>
+                  <Text style={styles.infoDesc}>
+                    Pick what sounds yummy and learn why it's great for you
+                  </Text>
                 </View>
               </View>
 
@@ -94,21 +154,27 @@ export function KidsDinnerChoice() {
                 <View style={styles.votedBox}>
                   <Text style={styles.votedEmoji}>{currentMeal.emoji}</Text>
                   <View>
-                    <Text style={styles.votedText}>You chose: {currentMeal.name}</Text>
+                    <Text style={styles.votedText}>
+                      You chose: {currentMeal.name}
+                    </Text>
                     <Text style={styles.votedSub}>Did you eat it well?</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.ateBtn}
                     onPress={() => setShowPinModal(true)}
                   >
-                    <Text style={styles.ateBtnText}>🔒 Ask Parent: I Ate Well! +2</Text>
+                    <Text style={styles.ateBtnText}>
+                      🔒 Ask Parent: I Ate Well! +2
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {mealEaten && (
                 <View style={styles.eatenBadge}>
-                  <Text style={styles.eatenText}>✓ Amazing! You ate well today!</Text>
+                  <Text style={styles.eatenText}>
+                    ✓ Amazing! You ate well today!
+                  </Text>
                 </View>
               )}
 
@@ -127,7 +193,11 @@ export function KidsDinnerChoice() {
                       <View style={styles.mealInfo}>
                         <Text style={styles.mealName}>{meal.name}</Text>
                         <Text style={styles.mealDesc}>{meal.description}</Text>
-                        <Text style={styles.mealHint}>💡 Tap to learn why this is amazing!</Text>
+                        <Text style={styles.mealHint}>
+                          {meal.isToday
+                            ? "⭐ Tonight's planned dinner!"
+                            : '💡 Tap to learn why this is amazing!'}
+                        </Text>
                       </View>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -138,13 +208,22 @@ export function KidsDinnerChoice() {
             <View style={styles.successView}>
               <Text style={styles.successEmoji}>💪</Text>
               <Text style={styles.successTitle}>You're Getting Stronger!</Text>
-              <Text style={styles.successDesc}>Every healthy meal gives your body superpowers for playing, learning, and having fun! 🌟</Text>
+              <Text style={styles.successDesc}>
+                Every healthy meal gives your body superpowers for playing,
+                learning, and having fun! 🌟
+              </Text>
               <View style={styles.pointsBox}>
                 <Users size={20} color="#ea580c" />
                 <Text style={styles.pointsText}>+2 Family Points!</Text>
               </View>
-              <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('KidsBuddyHome')}>
-                <LinearGradient colors={['#f97316', '#f59e0b', '#14b8a6']} style={styles.homeBtn}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('KidsBuddyHome')}
+              >
+                <LinearGradient
+                  colors={['#f97316', '#f59e0b', '#14b8a6']}
+                  style={styles.homeBtn}
+                >
                   <Text style={styles.homeBtnText}>Back to Home 🏠</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -155,45 +234,79 @@ export function KidsDinnerChoice() {
 
       {/* Meal info modal */}
       <Modal visible={showModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowModal(false)}>
-          {selectedMeal && (() => {
-            const meal = mealOptions.find(m => m.id === selectedMeal)!;
-            return (
-              <TouchableOpacity activeOpacity={1} style={styles.modalCard} onPress={() => {}}>
-                <Text style={styles.modalEmoji}>{meal.emoji}</Text>
-                <Text style={styles.modalName}>{meal.name}</Text>
-                <View style={styles.benefitsList}>
-                  <View style={styles.benefitsHeader}>
-                    <Sparkles size={18} color="#9333ea" />
-                    <Text style={styles.benefitsTitle}> Why This is Amazing For You:</Text>
-                  </View>
-                  {meal.benefits.map((b, i) => (
-                    <View key={i} style={styles.benefitItem}>
-                      <Text style={styles.benefitText}>{b}</Text>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowModal(false)}
+        >
+          {selectedMeal &&
+            (() => {
+              const meal = mealOptions.find(m => m.id === selectedMeal)!;
+              return (
+                <TouchableOpacity
+                  activeOpacity={1}
+                  style={styles.modalCard}
+                  onPress={() => {}}
+                >
+                  <Text style={styles.modalEmoji}>{meal.emoji}</Text>
+                  <Text style={styles.modalName}>{meal.name}</Text>
+                  <View style={styles.benefitsList}>
+                    <View style={styles.benefitsHeader}>
+                      <Sparkles size={18} color="#9333ea" />
+                      <Text style={styles.benefitsTitle}>
+                        {' '}
+                        Why This is Amazing For You:
+                      </Text>
                     </View>
-                  ))}
-                </View>
-                <TouchableOpacity style={styles.chooseBtn} onPress={confirmVote}>
-                  <Users size={18} color="#fff" />
-                  <Text style={styles.chooseBtnText}> I Choose This! +1 Point</Text>
+                    {meal.benefits.map((b, i) => (
+                      <View key={i} style={styles.benefitItem}>
+                        <Text style={styles.benefitText}>{b}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.chooseBtn}
+                    onPress={confirmVote}
+                  >
+                    <Users size={18} color="#fff" />
+                    <Text style={styles.chooseBtnText}>
+                      {' '}
+                      I Choose This! +1 Point
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => setShowModal(false)}
+                  >
+                    <Text style={styles.cancelBtnText}>
+                      Look at Other Options
+                    </Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
-                  <Text style={styles.cancelBtnText}>Look at Other Options</Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          })()}
+              );
+            })()}
         </TouchableOpacity>
       </Modal>
 
       {/* PIN modal */}
       <Modal visible={showPinModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowPinModal(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.pinCard} onPress={() => {}}>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowPinModal(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.pinCard}
+            onPress={() => {}}
+          >
             <Text style={styles.lockEmoji}>🔒</Text>
             <Text style={styles.pinTitle}>Ask a Parent!</Text>
             <Text style={styles.pinDesc}>Did you eat your meal well?</Text>
-            <TouchableOpacity style={styles.approveBtn} onPress={() => handlePinSubmit()}>
+            <TouchableOpacity
+              style={styles.approveBtn}
+              onPress={() => handlePinSubmit()}
+            >
               <Text style={styles.approveBtnText}>👍 Child Ate Well</Text>
             </TouchableOpacity>
             <TextInput
@@ -205,10 +318,18 @@ export function KidsDinnerChoice() {
               keyboardType="numeric"
               maxLength={4}
             />
-            <TouchableOpacity style={styles.submitPin} onPress={handlePinSubmit}>
+            <TouchableOpacity
+              style={styles.submitPin}
+              onPress={handlePinSubmit}
+            >
               <Text style={styles.submitPinText}>Submit PIN</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setShowPinModal(false); setPin(''); }}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowPinModal(false);
+                setPin('');
+              }}
+            >
               <Text style={styles.cancelPinText}>Cancel</Text>
             </TouchableOpacity>
           </TouchableOpacity>
@@ -259,7 +380,12 @@ const styles = StyleSheet.create({
   },
   infoEmoji: { fontSize: 40 },
   infoText: { flex: 1 },
-  infoTitle: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginBottom: 2 },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
   infoDesc: { fontSize: 13, color: '#6b7280' },
   votedBox: {
     backgroundColor: '#dbeafe',
@@ -268,7 +394,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   votedEmoji: { fontSize: 32, marginBottom: 4 },
-  votedText: { fontSize: 14, fontWeight: '700', color: '#1e40af', marginBottom: 2 },
+  votedText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e40af',
+    marginBottom: 2,
+  },
   votedSub: { fontSize: 13, color: '#1d4ed8', marginBottom: 10 },
   ateBtn: {
     backgroundColor: '#22c55e',
@@ -305,8 +436,20 @@ const styles = StyleSheet.create({
   mealHint: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
   successView: { alignItems: 'center', paddingTop: 16 },
   successEmoji: { fontSize: 72, marginBottom: 12 },
-  successTitle: { fontSize: 28, fontWeight: '800', color: '#1f2937', textAlign: 'center', marginBottom: 10 },
-  successDesc: { fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 24, marginBottom: 20 },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1f2937',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  successDesc: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 20,
+  },
   pointsBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -339,7 +482,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalEmoji: { fontSize: 64, marginBottom: 8 },
-  modalName: { fontSize: 24, fontWeight: '700', color: '#1f2937', marginBottom: 16 },
+  modalName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
   benefitsList: {
     backgroundColor: '#eff6ff',
     borderRadius: 16,
@@ -347,7 +495,11 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
   },
-  benefitsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  benefitsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   benefitsTitle: { fontSize: 14, fontWeight: '700', color: '#1e40af' },
   benefitItem: { marginBottom: 6 },
   benefitText: { fontSize: 13, color: '#1e3a8a', lineHeight: 18 },
@@ -378,7 +530,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lockEmoji: { fontSize: 52, marginBottom: 8 },
-  pinTitle: { fontSize: 24, fontWeight: '700', color: '#1f2937', marginBottom: 4 },
+  pinTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
   pinDesc: { fontSize: 15, color: '#6b7280', marginBottom: 16 },
   approveBtn: {
     backgroundColor: '#22c55e',
@@ -410,5 +567,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   submitPinText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  cancelPinText: { fontSize: 15, color: '#6b7280', fontWeight: '600', paddingVertical: 6 },
+  cancelPinText: {
+    fontSize: 15,
+    color: '#6b7280',
+    fontWeight: '600',
+    paddingVertical: 6,
+  },
 });

@@ -4,5 +4,5 @@
     "types": ["jest"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods", "6maleindian/**", "Parent interface/**"]
+  "exclude": ["**/node_modules", "**/Pods", "6maleindian/**", "Parent interface/**", "8-10yo/**"]
 }
