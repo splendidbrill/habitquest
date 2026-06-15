@@ -45,6 +45,12 @@ export function KidsBuddyHome() {
   const [freezesAvailable, setFreezesAvailable] = useState(0);
   const { showSpin, dismissSpin } = useDailySpin();
 
+  // Phase A.2: once a child reaches their home they have finished avatar
+  // creation, so flag it — ProfileSelector skips the avatar flow next time.
+  useEffect(() => {
+    if (activeChild?.id) storage.setItem('avatarReady:' + activeChild.id, '1');
+  }, [activeChild?.id]);
+
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreetingTime('Good Morning');

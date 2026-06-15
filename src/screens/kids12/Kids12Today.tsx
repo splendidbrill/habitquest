@@ -57,6 +57,11 @@ const dailySuggestions = [
 export function Kids12Today() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeChild } = useChild();
+
+  // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
+  useEffect(() => {
+    if (activeChild?.id) storage.setItem('avatarReady:' + activeChild.id, '1');
+  }, [activeChild?.id]);
   const [showMenu, setShowMenu] = useState(false);
   const [greeting] = useState(greetings[Math.floor(Math.random() * greetings.length)]);
   const [todaySuggestion] = useState(

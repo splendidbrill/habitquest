@@ -16,6 +16,7 @@ import type { RootStackParamList } from '../navigation';
 import { useAuth } from '../context/AuthContext';
 import { useChild, ChildProfile } from '../context/ChildContext';
 import { supabase } from '../lib/supabase';
+import { storage } from '../utils/storage';
 
 const AGE_GROUP_CONFIG: Record<string, { emoji: string; colors: [string, string]; label: string }> = {
   '6-8':  { emoji: '🐯', colors: ['#f97316', '#fbbf24'], label: '6–8 years' },
@@ -27,6 +28,14 @@ const AGE_FIRST_SCREEN: Record<string, keyof RootStackParamList> = {
   '6-8':   'KidsAvatarSelection',
   '8-10':  'Kids8AthleteOnboarding',
   '10-12': 'Kids12Onboarding',
+};
+
+// Once a child has created their avatar, skip the avatar/onboarding flow and
+// drop them straight into their home (Phase A.2 avatar persistence).
+const AGE_HOME_SCREEN: Record<string, keyof RootStackParamList> = {
+  '6-8':   'KidsBuddyHome',
+  '8-10':  'Kids8TrainingDashboard',
+  '10-12': 'Kids12Today',
 };
 
 export function ProfileSelector() {
@@ -60,8 +69,15 @@ export function ProfileSelector() {
 
   const handleSelectChild = async (child: ChildProfile) => {
     await setActiveChild(child);
-    const firstScreen = AGE_FIRST_SCREEN[child.age_group];
-    navigation.navigate(firstScreen as any);
+    // Skip the avatar/onboarding flow if this child already has an avatar
+    // (either persisted on the profile or flagged locally on first completion).
+    const hasAvatar =
+      !!child.avatar ||
+      (await storage.getItem('avatarReady:' + child.id)) === '1';
+    const target = hasAvatar
+      ? AGE_HOME_SCREEN[child.age_group]
+      : AGE_FIRST_SCREEN[child.age_group];
+    navigation.navigate(target as any);
   };
 
   if (loading) {

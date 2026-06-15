@@ -23,6 +23,11 @@ export function Kids8TrainingDashboard() {
     storage.getItem('kids8FavoriteAthlete').then(v => { if (v) setFavoriteAthlete(v); });
   }, []);
 
+  // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
+  useEffect(() => {
+    if (activeChild?.id) storage.setItem('avatarReady:' + activeChild.id, '1');
+  }, [activeChild?.id]);
+
   // Derive XP progress from Supabase data
   const xp     = activeChild?.xp ?? 0;
   const streak = activeChild?.streak ?? 0;
