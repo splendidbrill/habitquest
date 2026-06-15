@@ -77,7 +77,7 @@ export function Kids8LunchBuilder() {
   const freshFoods = foodItems.filter(f => f.category === 'fresh');
 
   return (
-    <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#3B0764', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -140,7 +140,7 @@ export function Kids8LunchBuilder() {
                 </View>
                 {lunchbox.length >= 2 && !showRating && (
                   <TouchableOpacity activeOpacity={0.85} onPress={calculateRating}>
-                    <LinearGradient colors={['#2563eb', '#0891b2']} style={styles.rateBtn}>
+                    <LinearGradient colors={['#8B5CF6', '#EC4899']} style={styles.rateBtn}>
                       <TrendingUp size={18} color="#fff" />
                       <Text style={styles.rateBtnText}>Rate My Lunch</Text>
                     </LinearGradient>

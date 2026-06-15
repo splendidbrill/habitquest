@@ -61,7 +61,7 @@ export function Kids8EnergyMeter() {
 
   const getStatus = () => {
     if (energyLevel >= 80) return { text: 'Champion Energy!', emoji: '🔥', colors: ['#16a34a', '#059669'] as [string,string] };
-    if (energyLevel >= 60) return { text: 'Great Energy', emoji: '⚡', colors: ['#2563eb', '#0891b2'] as [string,string] };
+    if (energyLevel >= 60) return { text: 'Great Energy', emoji: '⚡', colors: ['#8B5CF6', '#EC4899'] as [string,string] };
     if (energyLevel >= 40) return { text: 'Moderate Energy', emoji: '💪', colors: ['#eab308', '#f97316'] as [string,string] };
     return { text: 'Need Fuel!', emoji: '🔋', colors: ['#f97316', '#ef4444'] as [string,string] };
   };
@@ -69,7 +69,7 @@ export function Kids8EnergyMeter() {
   const status = getStatus();
 
   return (
-    <LinearGradient colors={['#0f172a', '#064e3b', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#064e3b', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -106,7 +106,7 @@ export function Kids8EnergyMeter() {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity activeOpacity={0.85} onPress={() => setShowMenu(showMenu === 'activity' ? null : 'activity')} style={{ flex: 1 }}>
-              <LinearGradient colors={['#2563eb', '#0891b2']} style={styles.logBtn}>
+              <LinearGradient colors={['#8B5CF6', '#EC4899']} style={styles.logBtn}>
                 <Activity size={28} color="#fff" />
                 <Text style={styles.logBtnText}>Log Activity</Text>
               </LinearGradient>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   meterFill: { height: '100%', backgroundColor: '#fff', borderRadius: 11 },
   infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', marginBottom: 14 },
   infoTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  infoText: { fontSize: 13, color: '#bfdbfe', lineHeight: 18 },
+  infoText: { fontSize: 13, color: '#DDD6FE', lineHeight: 18 },
   btnRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
   logBtn: { borderRadius: 20, padding: 18, alignItems: 'center', gap: 6 },
   logBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },

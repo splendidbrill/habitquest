@@ -13,12 +13,12 @@ const allBadges = [
   { id: 'dinner-helper', emoji: '🍽️', name: 'Meal Master', description: 'Made a smart meal choice', colors: ['#f97316', '#ef4444'] as [string,string], category: 'Nutrition' },
   { id: 'veggie-explorer', emoji: '🥦', name: 'Veggie Champion', description: 'Completed veggie challenge', colors: ['#16a34a', '#059669'] as [string,string], category: 'Nutrition' },
   { id: 'kitchen-champion', emoji: '👨‍🍳', name: 'Kitchen Pro', description: 'Helped with meal prep', colors: ['#f59e0b', '#f97316'] as [string,string], category: 'Teamwork' },
-  { id: 'fuel-master', emoji: '⚡', name: 'Fuel Expert', description: 'Learned about performance nutrition', colors: ['#3b82f6', '#0891b2'] as [string,string], category: 'Knowledge' },
+  { id: 'fuel-master', emoji: '⚡', name: 'Fuel Expert', description: 'Learned about performance nutrition', colors: ['#3b82f6', '#EC4899'] as [string,string], category: 'Knowledge' },
   { id: 'lunch-builder', emoji: '🍱', name: 'Lunch Builder', description: 'Created a balanced lunchbox', colors: ['#9333ea', '#db2777'] as [string,string], category: 'Nutrition' },
-  { id: 'school-smart', emoji: '🎒', name: 'School Smart', description: 'Made smart choices at school', colors: ['#0d9488', '#0891b2'] as [string,string], category: 'Independence' },
+  { id: 'school-smart', emoji: '🎒', name: 'School Smart', description: 'Made smart choices at school', colors: ['#0d9488', '#EC4899'] as [string,string], category: 'Independence' },
   { id: 'first-mission', emoji: '🎯', name: 'First Mission', description: 'Completed your first training', colors: ['#9333ea', '#db2777'] as [string,string], category: 'Training' },
   { id: 'week-warrior', emoji: '🔥', name: 'Week Warrior', description: '7 day active streak', colors: ['#ef4444', '#f97316'] as [string,string], category: 'Consistency' },
-  { id: 'team-player', emoji: '🤝', name: 'Team Player', description: 'Earned 50 family points', colors: ['#0d9488', '#0891b2'] as [string,string], category: 'Teamwork' },
+  { id: 'team-player', emoji: '🤝', name: 'Team Player', description: 'Earned 50 family points', colors: ['#0d9488', '#EC4899'] as [string,string], category: 'Teamwork' },
   { id: 'rising-star', emoji: '⭐', name: 'Rising Star', description: 'Reached Rising Star level', colors: ['#eab308', '#f97316'] as [string,string], category: 'Progress' },
   { id: 'swap-master', emoji: '🔄', name: 'Swap Master', description: 'Learning healthy alternatives', colors: ['#f97316', '#f59e0b'] as [string,string], category: 'Knowledge' },
   { id: 'energy-tracker', emoji: '📊', name: 'Energy Tracker', description: 'Tracking daily fuel and activity', colors: ['#059669', '#16a34a'] as [string,string], category: 'Independence' },
@@ -49,7 +49,7 @@ export function Kids8Achievements() {
   const completionPercent = (earnedCount / totalCount) * 100;
 
   return (
-    <LinearGradient colors={['#0f172a', '#3b0764', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#3b0764', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -110,7 +110,7 @@ export function Kids8Achievements() {
           })}
 
           <View style={styles.motivCard}>
-            <Trophy size={22} color="#60a5fa" />
+            <Trophy size={22} color="#A78BFA" />
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.motivTitle}>Keep Going!</Text>
               <Text style={styles.motivText}>
@@ -151,5 +151,5 @@ const styles = StyleSheet.create({
   earnedIcon: { position: 'absolute', top: 8, right: 8 },
   motivCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(37,99,235,0.15)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(96,165,250,0.3)' },
   motivTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  motivText: { fontSize: 13, color: '#bfdbfe', lineHeight: 18 },
+  motivText: { fontSize: 13, color: '#DDD6FE', lineHeight: 18 },
 });

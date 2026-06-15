@@ -16,8 +16,8 @@ const workouts: Workout[] = [
   { id: 'winger-warmup', name: 'Winger Warm-Up', subtitle: 'Speed & Agility', athlete: 'Footballers use this before matches', duration: 60, emoji: '⚽', colors: ['#16a34a', '#059669'], exercises: [{ name: 'High Knees', duration: 15, description: 'Run in place, knees high', emoji: '🏃' }, { name: 'Side Shuffles', duration: 15, description: 'Quick side-to-side steps', emoji: '↔️' }, { name: 'Butt Kicks', duration: 15, description: 'Kick heels to glutes', emoji: '🦵' }, { name: 'Arm Circles', duration: 15, description: 'Big arm rotations', emoji: '💪' }] },
   { id: 'boxer-footwork', name: 'Boxer Footwork', subtitle: 'Balance & Coordination', athlete: 'This is how boxers train reflexes', duration: 60, emoji: '🥊', colors: ['#ef4444', '#f43f5e'], exercises: [{ name: 'Quick Feet', duration: 15, description: 'Light, fast steps on toes', emoji: '👣' }, { name: 'Shadow Boxing', duration: 15, description: 'Punch combinations in the air', emoji: '🥊' }, { name: 'Lateral Hops', duration: 15, description: 'Jump side to side', emoji: '↔️' }, { name: 'Skip Rope (Air)', duration: 15, description: 'Pretend to skip rope', emoji: '➰' }] },
   { id: 'basketball-jump', name: 'Basketball Jump Set', subtitle: 'Explosive Power', athlete: 'NBA players do this before games', duration: 60, emoji: '🏀', colors: ['#ea580c', '#d97706'], exercises: [{ name: 'Jump Squats', duration: 15, description: 'Squat then explode upward', emoji: '⬆️' }, { name: 'Lateral Lunges', duration: 15, description: 'Lunge to the side', emoji: '↔️' }, { name: 'Ankle Bounces', duration: 15, description: 'Quick, small jumps', emoji: '⚡' }, { name: 'Reach Jumps', duration: 15, description: 'Jump and reach for the sky', emoji: '🌟' }] },
-  { id: 'swimmer-stretch', name: "Swimmer's Stretch", subtitle: 'Flexibility & Core', athlete: 'Swimmers prepare shoulders like this', duration: 60, emoji: '🏊', colors: ['#0891b2', '#2563eb'], exercises: [{ name: 'Arm Swings', duration: 15, description: 'Swing arms in circles', emoji: '💪' }, { name: 'Torso Twists', duration: 15, description: 'Rotate your upper body', emoji: '🔄' }, { name: 'Leg Swings', duration: 15, description: 'Swing legs forward and back', emoji: '🦵' }, { name: 'Standing Pike', duration: 15, description: 'Reach down to your toes', emoji: '🤸' }] },
-  { id: 'sprinter-power', name: 'Sprinter Power-Up', subtitle: 'Acceleration & Speed', athlete: 'This is how sprinters warm up', duration: 60, emoji: '🏃', colors: ['#2563eb', '#9333ea'], exercises: [{ name: 'A-Skips', duration: 15, description: 'Skip with high knees', emoji: '⬆️' }, { name: 'Power Steps', duration: 15, description: 'Explosive running motion', emoji: '💥' }, { name: 'Ankle Hops', duration: 15, description: 'Quick bounces on toes', emoji: '⚡' }, { name: 'Drive Steps', duration: 15, description: 'Push forward powerfully', emoji: '🚀' }] },
+  { id: 'swimmer-stretch', name: "Swimmer's Stretch", subtitle: 'Flexibility & Core', athlete: 'Swimmers prepare shoulders like this', duration: 60, emoji: '🏊', colors: ['#EC4899', '#8B5CF6'], exercises: [{ name: 'Arm Swings', duration: 15, description: 'Swing arms in circles', emoji: '💪' }, { name: 'Torso Twists', duration: 15, description: 'Rotate your upper body', emoji: '🔄' }, { name: 'Leg Swings', duration: 15, description: 'Swing legs forward and back', emoji: '🦵' }, { name: 'Standing Pike', duration: 15, description: 'Reach down to your toes', emoji: '🤸' }] },
+  { id: 'sprinter-power', name: 'Sprinter Power-Up', subtitle: 'Acceleration & Speed', athlete: 'This is how sprinters warm up', duration: 60, emoji: '🏃', colors: ['#8B5CF6', '#9333ea'], exercises: [{ name: 'A-Skips', duration: 15, description: 'Skip with high knees', emoji: '⬆️' }, { name: 'Power Steps', duration: 15, description: 'Explosive running motion', emoji: '💥' }, { name: 'Ankle Hops', duration: 15, description: 'Quick bounces on toes', emoji: '⚡' }, { name: 'Drive Steps', duration: 15, description: 'Push forward powerfully', emoji: '🚀' }] },
   { id: 'tennis-agility', name: 'Tennis Agility', subtitle: 'Court Movement', athlete: 'Pro tennis players use these drills', duration: 60, emoji: '🎾', colors: ['#ca8a04', '#65a30d'], exercises: [{ name: 'Split Steps', duration: 15, description: 'Quick ready position hops', emoji: '👟' }, { name: 'Crossover Steps', duration: 15, description: 'Step across your body', emoji: '↔️' }, { name: 'Quick Pivots', duration: 15, description: 'Turn fast on one foot', emoji: '🔄' }, { name: 'Forward Lunges', duration: 15, description: 'Big steps forward', emoji: '➡️' }] },
 ];
 
@@ -63,7 +63,7 @@ export function Kids8TrainLikePro() {
 
   if (!selectedWorkout) {
     return (
-      <LinearGradient colors={['#0f172a', '#3b0764', '#0f172a']} style={styles.container}>
+      <LinearGradient colors={['#2D1B4E', '#3b0764', '#2D1B4E']} style={styles.container}>
         <SafeAreaView style={styles.safe}>
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.header}>
@@ -151,7 +151,7 @@ export function Kids8TrainLikePro() {
             </View>
 
             <TouchableOpacity activeOpacity={0.85} onPress={beginWorkout} style={styles.startBtn}>
-              <Play size={24} color="#0f172a" />
+              <Play size={24} color="#2D1B4E" />
               <Text style={styles.startBtnText}>Start Workout</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -162,7 +162,7 @@ export function Kids8TrainLikePro() {
 
   if (workoutState === 'complete') {
     return (
-      <LinearGradient colors={['#0f172a', '#064e3b', '#0f172a']} style={styles.container}>
+      <LinearGradient colors={['#2D1B4E', '#064e3b', '#2D1B4E']} style={styles.container}>
         <SafeAreaView style={styles.safe}>
           <View style={styles.completeContent}>
             <LinearGradient colors={['#16a34a', '#059669']} style={styles.completeCard}>
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   exTimeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 50, paddingHorizontal: 8, paddingVertical: 4 },
   exTimeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   startBtn: { backgroundColor: '#fff', borderRadius: 20, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  startBtnText: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  startBtnText: { fontSize: 18, fontWeight: '800', color: '#2D1B4E' },
   completeContent: { flex: 1, justifyContent: 'center', padding: 24 },
   completeCard: { borderRadius: 24, padding: 28, alignItems: 'center' },
   completeTitle: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 8 },
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   completeStats: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 },
   completeLabel: { fontSize: 11, color: '#fde68a', fontWeight: '800', marginBottom: 4 },
   completeNum: { fontSize: 44, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  completeXpLabel: { fontSize: 11, color: '#93c5fd', fontWeight: '800', marginBottom: 4 },
+  completeXpLabel: { fontSize: 11, color: '#C4B5FD', fontWeight: '800', marginBottom: 4 },
   completeXp: { fontSize: 22, fontWeight: '800', color: '#fff' },
   completeBtns: { flexDirection: 'row', gap: 10, width: '100%' },
   moreBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },

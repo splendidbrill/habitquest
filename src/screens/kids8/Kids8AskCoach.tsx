@@ -42,7 +42,7 @@ export function Kids8AskCoach() {
   }, [selectedQ]);
 
   return (
-    <LinearGradient colors={['#0f172a', '#3b0764', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#3b0764', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -70,7 +70,7 @@ export function Kids8AskCoach() {
           ))}
 
           <View style={styles.footer}>
-            <Zap size={22} color="#60a5fa" />
+            <Zap size={22} color="#A78BFA" />
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.footerTitle}>Keep Learning!</Text>
               <Text style={styles.footerText}>The more you understand about nutrition and training, the better athlete you become. Knowledge = power! 💪</Text>
@@ -140,14 +140,14 @@ const styles = StyleSheet.create({
   questionText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#fff', lineHeight: 19 },
   footer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(37,99,235,0.15)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(96,165,250,0.3)', marginTop: 4 },
   footerTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  footerText: { fontSize: 13, color: '#bfdbfe', lineHeight: 18 },
+  footerText: { fontSize: 13, color: '#DDD6FE', lineHeight: 18 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#0f172a', borderRadius: 32, padding: 24, maxHeight: '90%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  modalContent: { backgroundColor: '#2D1B4E', borderRadius: 32, padding: 24, maxHeight: '90%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   questionBox: { backgroundColor: 'rgba(147,51,234,0.2)', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 14 },
   modalQuestion: { fontSize: 16, fontWeight: '800', color: '#fff', textAlign: 'center' },
   answerBox: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
   answerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  coachSays: { fontSize: 14, fontWeight: '800', color: '#93c5fd', flex: 1 },
+  coachSays: { fontSize: 14, fontWeight: '800', color: '#C4B5FD', flex: 1 },
   speakBtn: { padding: 6 },
   answerText: { fontSize: 14, color: '#fff', lineHeight: 20 },
   proTipBox: { flexDirection: 'row', backgroundColor: 'rgba(234,88,12,0.15)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)', marginBottom: 16 },

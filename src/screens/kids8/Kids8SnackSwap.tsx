@@ -24,7 +24,7 @@ export function Kids8SnackSwap() {
   const [selectedSwap, setSelectedSwap] = useState<typeof snackSwaps[0] | null>(null);
 
   return (
-    <LinearGradient colors={['#0f172a', '#431407', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#431407', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -92,7 +92,7 @@ export function Kids8SnackSwap() {
                 </View>
 
                 <View style={styles.impactBox}>
-                  <TrendingUp size={18} color="#60a5fa" />
+                  <TrendingUp size={18} color="#A78BFA" />
                   <View style={{ flex: 1, marginLeft: 8 }}>
                     <Text style={styles.impactTitle}>Performance Boost</Text>
                     <Text style={styles.impactText}>{selectedSwap.sportsImpact}</Text>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   proTipTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 4 },
   proTipText: { fontSize: 13, color: '#bbf7d0', lineHeight: 18 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#0f172a', borderRadius: 32, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  modalContent: { backgroundColor: '#2D1B4E', borderRadius: 32, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   modalLabel: { fontSize: 11, fontWeight: '800', color: '#fb923c', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginBottom: 16 },
   swapDetailRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 },
   swapSide: { alignItems: 'center' },
@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
   benefitTitle: { fontSize: 13, fontWeight: '800', color: '#4ade80', marginBottom: 2 },
   benefitText: { fontSize: 13, color: '#bbf7d0', lineHeight: 18 },
   impactBox: { flexDirection: 'row', backgroundColor: 'rgba(37,99,235,0.15)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(96,165,250,0.3)', marginBottom: 16 },
-  impactTitle: { fontSize: 13, fontWeight: '800', color: '#60a5fa', marginBottom: 2 },
-  impactText: { fontSize: 13, color: '#bfdbfe', lineHeight: 18 },
+  impactTitle: { fontSize: 13, fontWeight: '800', color: '#A78BFA', marginBottom: 2 },
+  impactText: { fontSize: 13, color: '#DDD6FE', lineHeight: 18 },
   gotItBtn: { borderRadius: 50, paddingVertical: 16, alignItems: 'center' },
   gotItText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });

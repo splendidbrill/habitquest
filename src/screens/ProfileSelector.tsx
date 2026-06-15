@@ -18,28 +18,36 @@ import { useChild, ChildProfile } from '../context/ChildContext';
 import { supabase } from '../lib/supabase';
 import { storage } from '../utils/storage';
 
-const AGE_GROUP_CONFIG: Record<string, { emoji: string; colors: [string, string]; label: string }> = {
-  '6-8':  { emoji: '🐯', colors: ['#f97316', '#fbbf24'], label: '6–8 years' },
+const AGE_GROUP_CONFIG: Record<
+  string,
+  { emoji: string; colors: [string, string]; label: string }
+> = {
+  '6-8': { emoji: '🐯', colors: ['#f97316', '#fbbf24'], label: '6–8 years' },
   '8-10': { emoji: '🚀', colors: ['#8b5cf6', '#ec4899'], label: '8–10 years' },
-  '10-12':{ emoji: '⚡', colors: ['#06b6d4', '#3b82f6'], label: '10–12 years' },
+  '10-12': {
+    emoji: '⚡',
+    colors: ['#06b6d4', '#3b82f6'],
+    label: '10–12 years',
+  },
 };
 
 const AGE_FIRST_SCREEN: Record<string, keyof RootStackParamList> = {
-  '6-8':   'KidsAvatarSelection',
-  '8-10':  'Kids8AthleteOnboarding',
+  '6-8': 'KidsAvatarSelection',
+  '8-10': 'Kids8AthleteOnboarding',
   '10-12': 'Kids12Onboarding',
 };
 
 // Once a child has created their avatar, skip the avatar/onboarding flow and
 // drop them straight into their home (Phase A.2 avatar persistence).
 const AGE_HOME_SCREEN: Record<string, keyof RootStackParamList> = {
-  '6-8':   'KidsBuddyHome',
-  '8-10':  'Kids8TrainingDashboard',
+  '6-8': 'KidsBuddyHome',
+  '8-10': 'Kids8TrainingDashboard',
   '10-12': 'Kids12Today',
 };
 
 export function ProfileSelector() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, signOut } = useAuth();
   const { setActiveChild } = useChild();
   const [children, setChildren] = useState<ChildProfile[]>([]);
@@ -52,7 +60,11 @@ export function ProfileSelector() {
 
     const [profileRes, childrenRes] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-      supabase.from('children').select('*').eq('parent_id', user.id).order('created_at'),
+      supabase
+        .from('children')
+        .select('*')
+        .eq('parent_id', user.id)
+        .order('created_at'),
     ]);
 
     if (profileRes.data?.full_name) setParentName(profileRes.data.full_name);
@@ -60,7 +72,11 @@ export function ProfileSelector() {
     setLoading(false);
   }, [user]);
 
-  useFocusEffect(useCallback(() => { loadProfiles(); }, [loadProfiles]));
+  useFocusEffect(
+    useCallback(() => {
+      loadProfiles();
+    }, [loadProfiles]),
+  );
 
   const handleSelectParent = async () => {
     await setActiveChild(null);
@@ -89,10 +105,15 @@ export function ProfileSelector() {
   }
 
   return (
-    <LinearGradient colors={['#e0f2fe', '#fef9c3', '#dcfce7']} style={styles.container}>
+    <LinearGradient
+      colors={['#e0f2fe', '#fef9c3', '#dcfce7']}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.emoji}>👋</Text>
           <Text style={styles.title}>Who's using the app?</Text>
           <Text style={styles.subtitle}>Pick your profile to get started</Text>
@@ -121,7 +142,9 @@ export function ProfileSelector() {
                   <Text style={styles.cardEmoji}>{config.emoji}</Text>
                   <View style={styles.cardText}>
                     <Text style={styles.cardName}>{child.name}</Text>
-                    <Text style={styles.cardSub}>{config.label} · {child.xp} XP · {child.streak} day streak</Text>
+                    <Text style={styles.cardSub}>
+                      {config.label} · {child.xp} XP · {child.streak} day streak
+                    </Text>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -153,7 +176,6 @@ export function ProfileSelector() {
               <Text style={styles.iconBtnText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
-
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -164,10 +186,26 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
+  content: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
   emoji: { fontSize: 64, marginBottom: 8 },
-  title: { fontSize: 30, fontWeight: '800', color: '#1e3a5f', marginBottom: 6, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#4b5563', marginBottom: 32, textAlign: 'center' },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1e3a5f',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#4b5563',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
   card: {
     width: '100%',
     borderRadius: 24,

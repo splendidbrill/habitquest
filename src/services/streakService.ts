@@ -48,7 +48,9 @@ export const STREAK_MILESTONES: StreakMilestone[] = [
 
 // ─── Grant weekly freeze if new week ─────────────────────────────────────────
 // Called every time a child opens the app or completes a mission
-export async function checkAndGrantWeeklyFreeze(childId: string): Promise<void> {
+export async function checkAndGrantWeeklyFreeze(
+  childId: string,
+): Promise<void> {
   const weekStart = getWeekStart();
 
   const { data: child } = await supabase
@@ -147,10 +149,16 @@ export async function checkStreakMilestone(
   });
 
   // Award cosmetic title
-  await supabase.from('cosmetic_titles').upsert(
-    { child_id: childId, title_id: milestone.titleId, title_label: milestone.titleLabel },
-    { onConflict: 'child_id,title_id' },
-  );
+  await supabase
+    .from('cosmetic_titles')
+    .upsert(
+      {
+        child_id: childId,
+        title_id: milestone.titleId,
+        title_label: milestone.titleLabel,
+      },
+      { onConflict: 'child_id,title_id' },
+    );
 
   return milestone;
 }
@@ -170,7 +178,9 @@ export async function isStreakAtRisk(childId: string): Promise<boolean> {
 }
 
 // ─── Check if buddy is sad (6-8 — more than 24h inactive) ───────────────────
-export async function getBuddyMood(childId: string): Promise<'happy' | 'sad' | 'worried'> {
+export async function getBuddyMood(
+  childId: string,
+): Promise<'happy' | 'sad' | 'worried'> {
   const { data: child } = await supabase
     .from('children')
     .select('last_active_date, streak')
@@ -197,7 +207,11 @@ export async function loadFreezeStatus(childId: string): Promise<{
   const weekStart = getWeekStart();
 
   const [childRes, usageRes] = await Promise.all([
-    supabase.from('children').select('streak_freezes').eq('id', childId).single(),
+    supabase
+      .from('children')
+      .select('streak_freezes')
+      .eq('id', childId)
+      .single(),
     supabase
       .from('streak_freeze_usage')
       .select('id')

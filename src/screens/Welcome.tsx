@@ -58,7 +58,7 @@ export function Welcome() {
           </View>
         </View>
 
-        <Text style={styles.title}>Welcome to HealthySteps</Text>
+        <Text style={styles.title}>Welcome to HabitQuest</Text>
         <Text style={styles.subtitle}>
           Supporting UK parents with simple, culturally-appropriate meal ideas
           and fun activities for children aged 7–11

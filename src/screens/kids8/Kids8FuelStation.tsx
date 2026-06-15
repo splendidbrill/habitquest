@@ -38,7 +38,7 @@ const fuelOptions = [
   },
   {
     id: 'hydration-hero', emoji: '💧', name: 'Hydration Station', category: 'Performance Essential',
-    colors: ['#3b82f6', '#0891b2'] as [string, string],
+    colors: ['#3b82f6', '#EC4899'] as [string, string],
     foods: ['Water', 'Coconut Water', 'Cucumber', 'Watermelon', 'Buttermilk'],
     performance: [
       { icon: '🏃', benefit: 'Run faster when properly hydrated' },
@@ -89,7 +89,7 @@ export function Kids8FuelStation() {
   const selectedFuelData = fuelOptions.find(f => f.id === selectedFuel);
 
   return (
-    <LinearGradient colors={['#0f172a', '#1e3a8a', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -100,7 +100,7 @@ export function Kids8FuelStation() {
             <View style={{ width: 44 }} />
           </View>
 
-          <LinearGradient colors={['#2563eb', '#0891b2']} style={styles.infoCard}>
+          <LinearGradient colors={['#8B5CF6', '#EC4899']} style={styles.infoCard}>
             <Flame size={32} color="#fde68a" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.infoTitle}>Fuel Like a Pro Athlete</Text>
@@ -160,7 +160,7 @@ export function Kids8FuelStation() {
 
                 <View style={styles.modalSection}>
                   <View style={styles.modalSectionHeader}>
-                    <Dumbbell size={18} color="#60a5fa" />
+                    <Dumbbell size={18} color="#A78BFA" />
                     <Text style={styles.modalSectionTitle}>Performance Benefits:</Text>
                   </View>
                   {selectedFuelData.performance.map((perf, i) => (
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '800', color: '#ffffff' },
   infoCard: { borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
   infoTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
-  infoText: { fontSize: 13, color: '#bfdbfe', lineHeight: 18 },
+  infoText: { fontSize: 13, color: '#DDD6FE', lineHeight: 18 },
   fuelCard: { borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   fuelEmoji: { fontSize: 52 },
   fuelCategory: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
@@ -237,8 +237,8 @@ const styles = StyleSheet.create({
   proTipTitle: { fontSize: 14, fontWeight: '800', color: '#ffffff', marginBottom: 4 },
   proTipText: { fontSize: 13, color: '#e9d5ff', lineHeight: 18 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#0f172a', borderRadius: 32, padding: 24, maxHeight: '90%' },
-  modalCategory: { fontSize: 11, fontWeight: '800', color: '#60a5fa', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+  modalContent: { backgroundColor: '#2D1B4E', borderRadius: 32, padding: 24, maxHeight: '90%' },
+  modalCategory: { fontSize: 11, fontWeight: '800', color: '#A78BFA', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
   modalName: { fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 14 },
   foodTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 16 },
   modalFoodTag: { borderRadius: 50, paddingHorizontal: 14, paddingVertical: 8 },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   modalSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   modalSectionTitle: { fontSize: 14, fontWeight: '800', color: '#fff' },
   perfItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
-  perfText: { flex: 1, fontSize: 13, color: '#bfdbfe', lineHeight: 18 },
+  perfText: { flex: 1, fontSize: 13, color: '#DDD6FE', lineHeight: 18 },
   impactBox: { flexDirection: 'row', backgroundColor: 'rgba(22,163,74,0.15)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)', marginBottom: 10 },
   impactTitle: { fontSize: 13, fontWeight: '800', color: '#4ade80', marginBottom: 4 },
   impactText: { fontSize: 13, color: '#bbf7d0', lineHeight: 18 },

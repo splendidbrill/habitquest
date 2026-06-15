@@ -38,7 +38,7 @@ export function Kids8AthleteOnboarding() {
 
   if (step === 1) {
     return (
-      <LinearGradient colors={['#0f172a', '#1e3a8a', '#0f172a']} style={styles.container}>
+      <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
         <SafeAreaView style={styles.safe}>
           <ScrollView contentContainerStyle={styles.centerContent} showsVerticalScrollIndicator={false}>
             <Text style={styles.heroEmoji}>🏆</Text>
@@ -49,7 +49,7 @@ export function Kids8AthleteOnboarding() {
 
             <View style={styles.card}>
               <View style={styles.featureRow}>
-                <Target size={24} color="#60a5fa" />
+                <Target size={24} color="#A78BFA" />
                 <View style={styles.featureText}>
                   <Text style={styles.featureTitle}>Daily Missions</Text>
                   <Text style={styles.featureDesc}>Complete training challenges every day</Text>
@@ -72,7 +72,7 @@ export function Kids8AthleteOnboarding() {
             </View>
 
             <TouchableOpacity activeOpacity={0.85} onPress={() => setStep(2)} style={styles.btnWrap}>
-              <LinearGradient colors={['#2563eb', '#0891b2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+              <LinearGradient colors={['#8B5CF6', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                 <Text style={styles.btnText}>Let's Start! </Text>
                 <ChevronRight size={22} color="#fff" />
               </LinearGradient>
@@ -85,7 +85,7 @@ export function Kids8AthleteOnboarding() {
 
   if (step === 2) {
     return (
-      <LinearGradient colors={['#0f172a', '#1e3a8a', '#0f172a']} style={styles.container}>
+      <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
         <SafeAreaView style={styles.safe}>
           <ScrollView contentContainerStyle={styles.centerContent} showsVerticalScrollIndicator={false}>
             <Text style={styles.heroEmoji}>👋</Text>
@@ -107,7 +107,7 @@ export function Kids8AthleteOnboarding() {
               style={styles.btnWrap}
             >
               <LinearGradient
-                colors={name ? ['#2563eb', '#0891b2'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
+                colors={name ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 style={styles.btn}
               >
@@ -122,7 +122,7 @@ export function Kids8AthleteOnboarding() {
   }
 
   return (
-    <LinearGradient colors={['#0f172a', '#1e3a8a', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={[styles.heroEmoji, { textAlign: 'center' }]}>⚽</Text>
@@ -138,7 +138,7 @@ export function Kids8AthleteOnboarding() {
                 style={styles.sportBtnWrap}
               >
                 <LinearGradient
-                  colors={sport === s.id ? ['#2563eb', '#0891b2'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
+                  colors={sport === s.id ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
                   style={styles.sportBtn}
                 >
                   <Text style={styles.sportEmoji}>{s.emoji}</Text>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   centerContent: { padding: 24, paddingBottom: 40, alignItems: 'center' },
   heroEmoji: { fontSize: 80, marginBottom: 16, textAlign: 'center' },
   title: { fontSize: 28, fontWeight: '800', color: '#ffffff', marginBottom: 12, textAlign: 'center' },
-  subtitle: { fontSize: 17, color: '#bfdbfe', marginBottom: 28, textAlign: 'center', lineHeight: 24 },
+  subtitle: { fontSize: 17, color: '#DDD6FE', marginBottom: 28, textAlign: 'center', lineHeight: 24 },
   card: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 24,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16, gap: 12 },
   featureText: { flex: 1 },
   featureTitle: { fontSize: 16, fontWeight: '700', color: '#ffffff', marginBottom: 2 },
-  featureDesc: { fontSize: 13, color: '#bfdbfe' },
+  featureDesc: { fontSize: 13, color: '#DDD6FE' },
   input: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     color: '#fff',

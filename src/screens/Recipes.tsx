@@ -13,25 +13,41 @@ export function Recipes() {
   const navigation = useNavigation();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filtered = indianRecipes.filter(r =>
-    r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = indianRecipes.filter(
+    r =>
+      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.description.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
-        <Button variant="ghost" size="sm" onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
           <ArrowLeft size={20} color={colors.foreground} />
         </Button>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Recipe Library</Text>
-          <Text style={styles.subtitle}>Indian-inspired family meals</Text>
+          <Text style={styles.subtitle}>
+            Meals personalised for your family
+          </Text>
         </View>
       </View>
 
       <View style={styles.searchRow}>
-        <Search size={16} color={colors.mutedForeground} style={styles.searchIcon} />
+        <Search
+          size={16}
+          color={colors.mutedForeground}
+          style={styles.searchIcon}
+        />
         <Input
           value={searchTerm}
           onChangeText={setSearchTerm}
@@ -40,9 +56,16 @@ export function Recipes() {
         />
       </View>
 
-      <Card style={[styles.infoCard, { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+      <Card
+        style={[
+          styles.infoCard,
+          { backgroundColor: colors.accent, borderColor: colors.accent },
+        ]}
+      >
         <Text style={styles.infoText}>
-          <Text style={{ fontWeight: '600' }}>🍛 About these recipes:</Text> All meals are designed for families with children aged 7-11, using familiar Indian ingredients and mild spices.
+          <Text style={{ fontWeight: '600' }}>🍽️ About these recipes:</Text> All
+          meals are designed for families with children aged 7-11, built around
+          the foods and flavours your family already enjoys.
         </Text>
       </Card>
 
@@ -54,7 +77,9 @@ export function Recipes() {
 
       {filtered.length === 0 && (
         <Card style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No recipes found. Try a different search term.</Text>
+          <Text style={styles.emptyText}>
+            No recipes found. Try a different search term.
+          </Text>
         </Card>
       )}
 
@@ -66,16 +91,30 @@ export function Recipes() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingTop: 56 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
   backBtn: { padding: 8 },
   title: { ...typography.h1 },
   subtitle: { fontSize: 13, color: colors.mutedForeground },
-  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, position: 'relative' },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    position: 'relative',
+  },
   searchIcon: { position: 'absolute', left: 14, zIndex: 1 },
   searchInput: { flex: 1, paddingLeft: 40 },
   infoCard: { padding: 14, marginBottom: 16 },
   infoText: { fontSize: 13, color: colors.accentForeground, lineHeight: 18 },
   list: { gap: 12 },
   emptyCard: { padding: 32, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
+  emptyText: {
+    fontSize: 14,
+    color: colors.mutedForeground,
+    textAlign: 'center',
+  },
 });

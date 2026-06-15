@@ -46,7 +46,7 @@ export function Kids8ProgressTracker() {
   const maxWeekly = Math.max(...weeklyProgress, 1);
 
   return (
-    <LinearGradient colors={['#0f172a', '#064e3b', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#064e3b', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -89,7 +89,7 @@ export function Kids8ProgressTracker() {
 
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
-              <Award size={20} color="#60a5fa" />
+              <Award size={20} color="#A78BFA" />
               <Text style={styles.chartTitle}>This Week's Activity</Text>
             </View>
             <View style={styles.bars}>
@@ -99,7 +99,7 @@ export function Kids8ProgressTracker() {
                   <View key={index} style={styles.barCol}>
                     <View style={[styles.barTrack]}>
                       <LinearGradient
-                        colors={index === 6 ? ['#059669', '#4ade80'] : ['#2563eb', '#0891b2']}
+                        colors={index === 6 ? ['#059669', '#4ade80'] : ['#8B5CF6', '#EC4899']}
                         style={[styles.barFill, { height: `${height}%` }]}
                       />
                     </View>
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, padding: 18, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   statValue: { fontSize: 28, fontWeight: '800', color: '#fff', marginTop: 6 },
-  statLabel: { fontSize: 11, color: '#93c5fd', marginTop: 2 },
+  statLabel: { fontSize: 11, color: '#C4B5FD', marginTop: 2 },
   chartCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   chartHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   chartTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   barCol: { flex: 1, alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' },
   barTrack: { width: '100%', height: '80%', justifyContent: 'flex-end' },
   barFill: { width: '100%', borderRadius: 4 },
-  barDay: { fontSize: 10, color: '#93c5fd', fontWeight: '700' },
+  barDay: { fontSize: 10, color: '#C4B5FD', fontWeight: '700' },
   barVal: { fontSize: 10, color: '#fff', fontWeight: '700' },
   chartFooter: { backgroundColor: 'rgba(22,163,74,0.2)', borderRadius: 12, padding: 10, alignItems: 'center' },
   chartFooterText: { fontSize: 13, fontWeight: '700', color: '#4ade80' },
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   recordsTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
   recordRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 14, marginBottom: 8 },
   recordName: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  recordSub: { fontSize: 11, color: '#93c5fd', marginTop: 2 },
+  recordSub: { fontSize: 11, color: '#C4B5FD', marginTop: 2 },
   recordVal: { fontSize: 20, fontWeight: '800', color: '#fff' },
   quoteCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(147,51,234,0.15)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)' },
   quoteTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 4 },

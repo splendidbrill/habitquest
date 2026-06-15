@@ -1,26 +1,161 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
-import { Trophy, Flame, Zap, TrendingUp, Award, Menu } from 'lucide-react-native';
+import { Sparkles, MapPin, Flame, Star } from 'lucide-react-native';
 import { RecommendedMissions } from '../../components/RecommendedMissions';
 import { DailySpin, useDailySpin } from '../../components/DailySpin';
 import { ParentReactionBanner } from '../../components/ParentReactionBanner';
 import { useChild } from '../../context/ChildContext';
+import {
+  loadFamilyProfile,
+  type FamilyProfile,
+} from '../../data/familyProfile';
+import {
+  selectDailyMovementQuest,
+  type MovementQuest,
+} from '../../data/movementQuests';
+import {
+  kids8Theme as T,
+  KIDS8_BG_GRADIENT,
+  KIDS8_GRADIENTS,
+} from './kids8Theme';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// A grouped tile (canonical 🎮 Games / 🍎 Food Adventures / 🎒 School Tools).
+type Tile = {
+  icon: string;
+  label: string;
+  colors: [string, string];
+  screen: keyof RootStackParamList;
+};
+
+const GAME_TILES: Tile[] = [
+  {
+    icon: '🏃',
+    label: 'Stadium Sprint',
+    colors: KIDS8_GRADIENTS.games,
+    screen: 'Kids8RunnerChallenge',
+  },
+  {
+    icon: '⚡',
+    label: 'Energy Meter',
+    colors: KIDS8_GRADIENTS.energy,
+    screen: 'Kids8EnergyMeter',
+  },
+  {
+    icon: '🎯',
+    label: 'Skill Drills',
+    colors: KIDS8_GRADIENTS.games,
+    screen: 'Kids8SkillDrills',
+  },
+  {
+    icon: '💪',
+    label: 'Train Like a Pro',
+    colors: KIDS8_GRADIENTS.cta,
+    screen: 'Kids8TrainLikePro',
+  },
+];
+
+const FOOD_TILES: Tile[] = [
+  {
+    icon: '🍽️',
+    label: 'Choose Dinner',
+    colors: KIDS8_GRADIENTS.dinner,
+    screen: 'Kids8DinnerChoice',
+  },
+  {
+    icon: '🥕',
+    label: 'Veggie Week',
+    colors: KIDS8_GRADIENTS.veggie,
+    screen: 'Kids8VeggieSelector',
+  },
+  {
+    icon: '👨‍🍳',
+    label: 'Kitchen Helper',
+    colors: KIDS8_GRADIENTS.kitchen,
+    screen: 'Kids8KitchenHelper',
+  },
+  {
+    icon: '⛽',
+    label: 'Fuel Station',
+    colors: KIDS8_GRADIENTS.foodsTried,
+    screen: 'Kids8FuelStation',
+  },
+];
+
+const SCHOOL_TILES: Tile[] = [
+  {
+    icon: '🍱',
+    label: 'Lunch Builder',
+    colors: KIDS8_GRADIENTS.lunch,
+    screen: 'Kids8LunchBuilder',
+  },
+  {
+    icon: '🔄',
+    label: 'Snack Swaps',
+    colors: KIDS8_GRADIENTS.snack,
+    screen: 'Kids8SnackSwap',
+  },
+  {
+    icon: '🎒',
+    label: 'School Fuel',
+    colors: KIDS8_GRADIENTS.school,
+    screen: 'Kids8SchoolFuel',
+  },
+];
+
+// Named XP levels (kept consistent with the rest of the kids8 flow).
+function deriveLevel(xp: number) {
+  if (xp >= 500)
+    return {
+      level: 'All-Star',
+      next: 'Legend',
+      toNext: 1000 - xp,
+      pct: ((xp - 500) / 500) * 100,
+    };
+  if (xp >= 200)
+    return {
+      level: 'Pro',
+      next: 'All-Star',
+      toNext: 500 - xp,
+      pct: ((xp - 200) / 300) * 100,
+    };
+  if (xp >= 50)
+    return {
+      level: 'Starter',
+      next: 'Pro',
+      toNext: 200 - xp,
+      pct: ((xp - 50) / 150) * 100,
+    };
+  return {
+    level: 'Rookie',
+    next: 'Starter',
+    toNext: 50 - xp,
+    pct: (xp / 50) * 100,
+  };
+}
 
 export function Kids8TrainingDashboard() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { activeChild, earnedBadges } = useChild();
+  const navigation = useNavigation<Nav>();
+  const { activeChild } = useChild();
   const { showSpin, dismissSpin } = useDailySpin();
-  const [favoriteAthlete, setFavoriteAthlete] = useState('');
+  const [profile, setProfile] = useState<FamilyProfile | null>(null);
 
   useEffect(() => {
-    storage.getItem('kids8FavoriteAthlete').then(v => { if (v) setFavoriteAthlete(v); });
+    loadFamilyProfile().then(setProfile);
   }, []);
 
   // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
@@ -28,167 +163,215 @@ export function Kids8TrainingDashboard() {
     if (activeChild?.id) storage.setItem('avatarReady:' + activeChild.id, '1');
   }, [activeChild?.id]);
 
-  // Derive XP progress from Supabase data
-  const xp     = activeChild?.xp ?? 0;
+  // Floating buddy animation (replaces the web bundle's motion/react loop).
+  const floatY = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatY, {
+          toValue: -10,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatY, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [floatY]);
+
+  const xp = activeChild?.xp ?? 0;
   const streak = activeChild?.streak ?? 0;
-  const userName = activeChild?.name ?? 'Athlete';
-  const badgeCount = earnedBadges.length;
+  const userName = activeChild?.name ?? 'Explorer';
+  const { level, next, toNext, pct } = deriveLevel(xp);
+  const buddyEmoji = activeChild?.avatar || '🐉';
 
-  let level = 'Rookie', xpToNext = 50, xpProgress = 0;
-  if (xp >= 500) {
-    level = 'All-Star'; xpToNext = 1000 - xp; xpProgress = ((xp - 500) / 500) * 100;
-  } else if (xp >= 200) {
-    level = 'Pro'; xpToNext = 500 - xp; xpProgress = ((xp - 200) / 300) * 100;
-  } else if (xp >= 50) {
-    level = 'Starter'; xpToNext = 200 - xp; xpProgress = ((xp - 50) / 150) * 100;
-  } else {
-    xpToNext = 50 - xp; xpProgress = (xp / 50) * 100;
-  }
+  // C.2: the day's Movement Quest is the headline "adventure" (same quest the
+  // parent Weekly Plan shows for this child's age band).
+  const quest: MovementQuest = selectDailyMovementQuest('8-10', profile);
 
-  const performanceActivities = [
-    { id: 'runner', title: 'Stadium Sprint', subtitle: 'Endless runner challenge', icon: '🏃', colors: ['#2563eb', '#0891b2'] as [string,string], screen: 'Kids8RunnerChallenge' as keyof RootStackParamList, tag: 'GAME' },
-    { id: 'drills', title: 'Skill Drills', subtitle: 'Reaction & agility training', icon: '⚡', colors: ['#ca8a04', '#ea580c'] as [string,string], screen: 'Kids8SkillDrills' as keyof RootStackParamList, tag: '30SEC' },
-    { id: 'pro', title: 'Train Like a Pro', subtitle: 'Elite athlete workouts', icon: '💪', colors: ['#9333ea', '#db2777'] as [string,string], screen: 'Kids8TrainLikePro' as keyof RootStackParamList, tag: '60SEC' },
-  ];
+  const go = (screen: keyof RootStackParamList) =>
+    navigation.navigate(screen as never);
 
-  const nutritionTools = [
-    { id: 'lunch', title: 'School Lunch Coach', subtitle: 'Rate & improve your meals', icon: '🍱', colors: ['#16a34a', '#059669'] as [string,string], screen: 'Kids8LunchBuilder' as keyof RootStackParamList },
-    { id: 'snack', title: 'Athlete Upgrades', subtitle: 'Smart snack swaps', icon: '🔄', colors: ['#ea580c', '#d97706'] as [string,string], screen: 'Kids8SnackSwap' as keyof RootStackParamList },
-  ];
-
-  const quickLinks: { title: string; icon: React.ReactNode; screen: keyof RootStackParamList }[] = [
-    { title: 'Progress Stats', icon: <TrendingUp size={20} color="#60a5fa" />, screen: 'Kids8ProgressTracker' },
-    { title: 'Trophy Cabinet', icon: <Trophy size={20} color="#60a5fa" />, screen: 'Kids8Achievements' },
-    { title: 'Ask Coach', icon: <Award size={20} color="#60a5fa" />, screen: 'Kids8AskCoach' },
-    { title: 'School Fuel', icon: <Zap size={20} color="#60a5fa" />, screen: 'Kids8SchoolFuel' },
-    { title: 'World Map', icon: <Trophy size={20} color="#60a5fa" />, screen: 'WorldMap' },
-    { title: 'Weekly Check-in', icon: <TrendingUp size={20} color="#60a5fa" />, screen: 'PillarCheckIn' },
-    { title: 'Family Challenges', icon: <Trophy size={20} color="#60a5fa" />, screen: 'KidsFamilyChallenges' },
-  ];
-
-  const nextLevelName = level === 'Rookie' ? 'Starter' : level === 'Starter' ? 'Pro' : level === 'Pro' ? 'All-Star' : 'Legend';
+  const renderTiles = (tiles: Tile[]) => (
+    <View style={styles.tileGrid}>
+      {tiles.map(t => (
+        <TouchableOpacity
+          key={t.screen}
+          activeOpacity={0.85}
+          onPress={() => go(t.screen)}
+          style={styles.tileWrap}
+        >
+          <LinearGradient colors={t.colors} style={styles.tile}>
+            <Text style={styles.tileIcon}>{t.icon}</Text>
+            <Text style={styles.tileLabel}>{t.label}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   return (
-    <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={KIDS8_BG_GRADIENT} style={styles.container}>
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Kids8PersonalizationSetup')} style={styles.menuBtn}>
-              <Menu size={24} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ alignItems: 'center' }}>
-              <Text style={styles.welcomeText}>Welcome back</Text>
-              <Text style={styles.userName}>{userName}</Text>
-            </View>
-            <View style={styles.avatarCircle}>
-              <Text style={{ fontSize: 24 }}>⚽</Text>
-            </View>
-          </View>
-
-          {/* XP Progress Card */}
-          <View style={styles.xpCard}>
-            <View style={styles.xpRow}>
-              <View>
-                <Text style={styles.xpLabel}>Current Level</Text>
-                <Text style={styles.xpLevel}>{level}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.xpLabel}>Total XP</Text>
-                <Text style={[styles.xpLevel, { color: '#60a5fa' }]}>{xp}</Text>
-              </View>
-            </View>
-            <View style={styles.progressMeta}>
-              <Text style={styles.progressMetaText}>Progress to {nextLevelName}</Text>
-              <Text style={styles.progressMetaText}>{xpToNext} XP to go</Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${Math.min(xpProgress, 100)}%` }]} />
-            </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Flame size={20} color="#f97316" />
-                <Text style={styles.statValue}>{streak}</Text>
-                <Text style={styles.statLabel}>Day Streak</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Award size={20} color="#eab308" />
-                <Text style={styles.statValue}>{badgeCount}</Text>
-                <Text style={styles.statLabel}>Badges</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Pro Tip */}
-          {favoriteAthlete ? (
-            <View style={styles.proTip}>
-              <Text style={{ fontSize: 28, marginRight: 10 }}>💡</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.proTipLabel}>PRO TIP</Text>
-                <Text style={styles.proTipText}>Pro athletes build habits like this. Consistency matters more than intensity.</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {/* Recommended missions */}
-          <RecommendedMissions isDark={true} />
-
-          {/* Performance Training */}
-          <Text style={styles.sectionTitle}>🏋️ Performance Training</Text>
-          {performanceActivities.map(activity => (
-            <TouchableOpacity
-              key={activity.id}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate(activity.screen as any)}
-              style={{ marginBottom: 12 }}
-            >
-              <LinearGradient colors={activity.colors} style={styles.activityCard}>
-                <Text style={styles.activityIcon}>{activity.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.activityTitle}>{activity.title}</Text>
-                  <Text style={styles.activitySub}>{activity.subtitle}</Text>
-                </View>
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>{activity.tag}</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
-
-          {/* Nutrition & Fuel */}
-          <Text style={styles.sectionTitle}>⚡ Nutrition & Fuel</Text>
-          <View style={styles.nutritionRow}>
-            {nutritionTools.map(tool => (
+            <View style={styles.headerLeft}>
               <TouchableOpacity
-                key={tool.id}
                 activeOpacity={0.85}
-                onPress={() => navigation.navigate(tool.screen as any)}
-                style={{ flex: 1 }}
+                onPress={() => go('Kids8PersonalizationSetup')}
               >
-                <LinearGradient colors={tool.colors} style={styles.nutritionCard}>
-                  <Text style={styles.nutritionIcon}>{tool.icon}</Text>
-                  <Text style={styles.nutritionTitle}>{tool.title}</Text>
-                  <Text style={styles.nutritionSub}>{tool.subtitle}</Text>
+                <LinearGradient
+                  colors={KIDS8_GRADIENTS.buddy}
+                  style={styles.avatar}
+                >
+                  <Text style={styles.avatarEmoji}>{buddyEmoji}</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            ))}
+              <View>
+                <Text style={styles.hello}>Hey, {userName}!</Text>
+                <View style={styles.levelRow}>
+                  <Sparkles size={14} color={T.purple700} />
+                  <Text style={styles.levelText}>{level}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.pills}>
+              <View style={styles.pill}>
+                <Flame size={16} color="#F97316" />
+                <Text style={styles.pillText}>{streak} days</Text>
+              </View>
+              <View style={styles.pill}>
+                <Star size={16} color={T.gold} />
+                <Text style={styles.pillText}>{xp} XP</Text>
+              </View>
+            </View>
           </View>
 
-          {/* Quick Links */}
-          <View style={styles.quickGrid}>
-            {quickLinks.map(link => (
-              <TouchableOpacity
-                key={link.screen}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate(link.screen as any)}
-                style={styles.quickBtn}
-              >
-                {link.icon}
-                <Text style={styles.quickTitle}>{link.title}</Text>
-              </TouchableOpacity>
-            ))}
+          {/* XP Progress */}
+          <View style={styles.xpCard}>
+            <View style={styles.xpHead}>
+              <Text style={styles.xpLabel}>XP Progress</Text>
+              <Text style={styles.xpValue}>
+                {level} · {toNext} XP to {next}
+              </Text>
+            </View>
+            <View style={styles.xpTrack}>
+              <View
+                style={[styles.xpFill, { width: `${Math.min(pct, 100)}%` }]}
+              />
+            </View>
           </View>
+
+          {/* Animated buddy */}
+          <Animated.View style={{ transform: [{ translateY: floatY }] }}>
+            <LinearGradient
+              colors={KIDS8_GRADIENTS.buddy}
+              style={styles.buddyCard}
+            >
+              <Text style={styles.buddyEmoji}>{buddyEmoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.buddyName}>Your buddy</Text>
+                <Text style={styles.buddySub}>Ready for adventure!</Text>
+              </View>
+              <Sparkles size={28} color={T.gold} />
+            </LinearGradient>
+          </Animated.View>
+
+          {/* Today's Adventure — the daily Movement Quest */}
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>Today's Adventure</Text>
+            <TouchableOpacity onPress={() => go('Kids8DailyMission')}>
+              <Text style={styles.seeAll}>See all</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => go('Kids8DailyMission')}
+          >
+            <View style={styles.questCard}>
+              <Text style={styles.questEmoji}>{quest.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.questTitle}>{quest.title}</Text>
+                <Text style={styles.questSub} numberOfLines={2}>
+                  {quest.challenge}
+                </Text>
+                <View style={styles.questMetaRow}>
+                  <Text style={styles.questMeta}>
+                    ⏱ {quest.durationMin} min
+                  </Text>
+                  <Text style={styles.questXp}>+{quest.xp} XP</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Personalised recommendations */}
+          <RecommendedMissions isDark={false} />
+
+          {/* Grouped sections */}
+          <Text style={styles.groupTitle}>🎮 Games</Text>
+          {renderTiles(GAME_TILES)}
+
+          <Text style={styles.groupTitle}>🍎 Food Adventures</Text>
+          {renderTiles(FOOD_TILES)}
+
+          <Text style={styles.groupTitle}>🎒 School Tools</Text>
+          {renderTiles(SCHOOL_TILES)}
+
+          {/* Main CTA */}
+          <TouchableOpacity activeOpacity={0.9} onPress={() => go('WorldMap')}>
+            <LinearGradient colors={KIDS8_GRADIENTS.cta} style={styles.cta}>
+              <MapPin size={22} color="#fff" />
+              <Text style={styles.ctaText}>Start Today's Adventure!</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </ScrollView>
+
+        {/* Bottom nav (5-item: Home / Map / Games / Quests / Rewards) */}
+        <View style={styles.bottomNav}>
+          {[
+            { icon: '🏠', label: 'Home', screen: undefined },
+            { icon: '🗺️', label: 'Map', screen: 'WorldMap' as const },
+            {
+              icon: '🎮',
+              label: 'Games',
+              screen: 'Kids8RunnerChallenge' as const,
+            },
+            {
+              icon: '✨',
+              label: 'Quests',
+              screen: 'Kids8DailyMission' as const,
+            },
+            {
+              icon: '🏆',
+              label: 'Rewards',
+              screen: 'Kids8Achievements' as const,
+            },
+          ].map(item => (
+            <TouchableOpacity
+              key={item.label}
+              activeOpacity={0.8}
+              disabled={!item.screen}
+              onPress={() => item.screen && go(item.screen)}
+              style={styles.navItem}
+            >
+              <View style={styles.navIconWrap}>
+                <Text style={styles.navIcon}>{item.icon}</Text>
+              </View>
+              <Text style={styles.navLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <DailySpin visible={showSpin} onClose={dismissSpin} />
         <ParentReactionBanner />
       </SafeAreaView>
@@ -199,40 +382,191 @@ export function Kids8TrainingDashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  content: { padding: 24, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  menuBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  welcomeText: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  userName: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  avatarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  xpCard: { backgroundColor: '#1e293b', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#334155', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
-  xpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  xpLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 2 },
-  xpLevel: { fontSize: 28, fontWeight: '800', color: '#ffffff' },
-  progressMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  progressMetaText: { fontSize: 11, color: '#94a3b8' },
-  progressTrack: { height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden', marginBottom: 12 },
-  progressFill: { height: '100%', backgroundColor: '#60a5fa', borderRadius: 5 },
-  statsRow: { flexDirection: 'row', gap: 12 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
-  statValue: { fontSize: 22, fontWeight: '800', color: '#ffffff', marginTop: 4 },
-  statLabel: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-  proTip: { flexDirection: 'row', backgroundColor: 'rgba(147,51,234,0.15)', borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(147,51,234,0.3)', alignItems: 'flex-start' },
-  proTipLabel: { fontSize: 10, fontWeight: '800', color: '#c084fc', marginBottom: 4 },
-  proTipText: { fontSize: 13, color: '#ffffff', lineHeight: 18 },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#ffffff', marginBottom: 12, marginTop: 4 },
-  activityCard: { borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  activityIcon: { fontSize: 44 },
-  activityTitle: { fontSize: 16, fontWeight: '800', color: '#ffffff', marginBottom: 2 },
-  activitySub: { fontSize: 12, color: 'rgba(255,255,255,0.85)' },
-  tag: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 50, paddingHorizontal: 10, paddingVertical: 4 },
-  tagText: { fontSize: 11, fontWeight: '800', color: '#ffffff' },
-  nutritionRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  nutritionCard: { borderRadius: 20, padding: 18, alignItems: 'center' },
-  nutritionIcon: { fontSize: 44, marginBottom: 8 },
-  nutritionTitle: { fontSize: 13, fontWeight: '800', color: '#ffffff', marginBottom: 4, textAlign: 'center' },
-  nutritionSub: { fontSize: 11, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  quickBtn: { width: '46%', backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: '#334155', borderRadius: 14, padding: 14 },
-  quickTitle: { fontSize: 13, fontWeight: '700', color: '#ffffff', marginTop: 8 },
+  content: { padding: 20, paddingBottom: 110 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  avatarEmoji: { fontSize: 30 },
+  hello: { fontSize: 20, fontWeight: '800', color: T.purple900 },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  levelText: { fontSize: 14, fontWeight: '700', color: T.purple700 },
+  pills: { gap: 6, alignItems: 'flex-end' },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  pillText: { fontSize: 13, fontWeight: '700', color: T.foreground },
+
+  xpCard: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: T.radius,
+    padding: 16,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  xpHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  xpLabel: { fontSize: 13, fontWeight: '700', color: T.purple700 },
+  xpValue: { fontSize: 12, color: T.purple900, fontWeight: '600' },
+  xpTrack: {
+    height: 12,
+    backgroundColor: T.muted,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  xpFill: { height: '100%', backgroundColor: T.xpBar, borderRadius: 6 },
+
+  buddyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderRadius: T.radius,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: T.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  buddyEmoji: { fontSize: 52 },
+  buddyName: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  buddySub: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+
+  sectionHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: T.purple900 },
+  seeAll: { fontSize: 14, fontWeight: '700', color: T.primary },
+  questCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: T.radius,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  questEmoji: { fontSize: 40 },
+  questTitle: { fontSize: 16, fontWeight: '800', color: T.purple900 },
+  questSub: { fontSize: 13, color: '#6B5B95', lineHeight: 18, marginTop: 2 },
+  questMetaRow: { flexDirection: 'row', gap: 12, marginTop: 6 },
+  questMeta: { fontSize: 12, fontWeight: '700', color: T.purple700 },
+  questXp: { fontSize: 12, fontWeight: '800', color: T.accent },
+
+  groupTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: T.purple900,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  tileGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  tileWrap: { width: '47%' },
+  tile: {
+    borderRadius: T.radius,
+    padding: 18,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  tileIcon: { fontSize: 38, marginBottom: 8 },
+  tileLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderRadius: T.radius,
+    paddingVertical: 18,
+    marginTop: 4,
+    shadowColor: T.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  ctaText: { fontSize: 18, fontWeight: '800', color: '#fff' },
+
+  bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+    paddingVertical: 8,
+    paddingBottom: 16,
+  },
+  navItem: { alignItems: 'center', gap: 2 },
+  navIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: T.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navIcon: { fontSize: 20 },
+  navLabel: { fontSize: 11, fontWeight: '600', color: T.purple700 },
 });

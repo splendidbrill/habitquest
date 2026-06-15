@@ -5,11 +5,42 @@ import { ArrowLeft, X, Sparkles } from 'lucide-react-native';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Checkbox } from '../components/ui/Checkbox';
-import { RecipeCard } from '../components/RecipeCard';
-import { indianRecipes } from '../data/recipes';
+import { mealLibrary, type LibraryMeal } from '../data/mealLibrary';
 import { colors, typography, radius, withOpacity } from '../theme';
 import { supabase } from '../lib/supabase';
 import { storage } from '../utils/storage';
+
+// Offline pantry match: rank library meals by how many pantry items they use,
+// and surface the few extra ingredients needed to complete each one. Keeps
+// Pantry Mode useful (and connected to the real meal library) with no network.
+type PantryMatch = {
+  meal: LibraryMeal;
+  have: string[];
+  missing: string[];
+};
+
+function matchPantryMeals(selected: string[], max = 4): PantryMatch[] {
+  const picks = selected.map(s => s.toLowerCase());
+  return mealLibrary
+    .map(meal => {
+      const have: string[] = [];
+      const missing: string[] = [];
+      for (const ing of meal.ingredients) {
+        const hit = picks.some(
+          p => ing.toLowerCase().includes(p) || p.includes(ing.toLowerCase()),
+        );
+        (hit ? have : missing).push(ing);
+      }
+      return { meal, have, missing };
+    })
+    .filter(m => m.have.length > 0)
+    // Most pantry items used first, then fewest extras to buy.
+    .sort(
+      (a, b) =>
+        b.have.length - a.have.length || a.missing.length - b.missing.length,
+    )
+    .slice(0, max);
+}
 
 const commonIngredients = [
   'Rice', 'Pasta', 'Potatoes', 'Onions', 'Garlic', 'Tomatoes',
@@ -22,7 +53,7 @@ type AIMeal = { name: string; description: string; time: string; ingredients: st
 export function PantryMode() {
   const navigation = useNavigation();
   const [selected, setSelected]   = useState<string[]>([]);
-  const [matched, setMatched]     = useState<typeof indianRecipes>([]);
+  const [matched, setMatched]     = useState<PantryMatch[]>([]);
   const [aiMeals, setAiMeals]     = useState<AIMeal[]>([]);
   const [loading, setLoading]     = useState(false);
   const [expanded, setExpanded]   = useState<number | null>(null);
@@ -68,12 +99,9 @@ Return ONLY valid JSON array:
       }
     } catch {}
 
-    // Fallback to recipe database
-    const results = indianRecipes.filter(recipe => {
-      const text = recipe.ingredients.join(' ').toLowerCase();
-      return selected.some(ing => text.includes(ing.toLowerCase()));
-    });
-    setMatched(results);
+    // Offline fallback: rank real library meals by pantry overlap and show
+    // what to add to complete each (connects Pantry Mode to the meal library).
+    setMatched(matchPantryMeals(selected));
     setLoading(false);
   };
 
@@ -165,13 +193,35 @@ Return ONLY valid JSON array:
         </View>
       )}
 
-      {/* Fallback recipe database results */}
+      {/* Offline library matches — ranked by pantry overlap, with what to add */}
       {matched.length > 0 && aiMeals.length === 0 && (
         <View style={styles.results}>
           <Text style={styles.sectionTitle}>
-            We found {matched.length} recipe{matched.length !== 1 ? 's' : ''}
+            Meals you’re close to ({matched.length})
           </Text>
-          {matched.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)}
+          {matched.map(m => (
+            <Card key={m.meal.id} style={styles.aiMealCard}>
+              <Text style={styles.aiMealName}>{m.meal.name}</Text>
+              <Text style={styles.aiMealMeta}>
+                Uses {m.have.length} of your ingredients
+              </Text>
+              <Text style={styles.aiLabel}>You have</Text>
+              <Text style={styles.aiIngredients}>{m.have.join(' · ')}</Text>
+              {m.missing.length > 0 ? (
+                <View style={styles.addBox}>
+                  <Text style={styles.addText}>
+                    🛒 Add to complete: {m.missing.join(', ')}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.addBox}>
+                  <Text style={styles.addText}>
+                    ✅ You have everything you need!
+                  </Text>
+                </View>
+              )}
+            </Card>
+          ))}
         </View>
       )}
 
@@ -222,6 +272,8 @@ const styles = StyleSheet.create({
   aiStep: { fontSize: 13, color: colors.foreground, lineHeight: 22, marginBottom: 2 },
   tipBox: { backgroundColor: withOpacity(colors.primary, 0.07), borderRadius: 10, padding: 12, marginTop: 10 },
   tipText: { fontSize: 13, color: colors.foreground, lineHeight: 19 },
+  addBox: { backgroundColor: withOpacity(colors.primary, 0.07), borderRadius: 10, padding: 10, marginTop: 6 },
+  addText: { fontSize: 13, color: colors.foreground, lineHeight: 19, fontWeight: '600' },
   results: { gap: 12, marginBottom: 8 },
   noMatchCard: { padding: 24, alignItems: 'center' },
   noMatchText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },

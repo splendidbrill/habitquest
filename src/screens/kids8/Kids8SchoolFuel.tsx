@@ -50,7 +50,7 @@ export function Kids8SchoolFuel() {
   };
 
   return (
-    <LinearGradient colors={['#0f172a', '#0d3d2d', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#0d3d2d', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -61,7 +61,7 @@ export function Kids8SchoolFuel() {
             <View style={{ width: 44 }} />
           </View>
 
-          <LinearGradient colors={['#0d9488', '#0891b2']} style={styles.infoCard}>
+          <LinearGradient colors={['#0d9488', '#EC4899']} style={styles.infoCard}>
             <BookOpen size={32} color="#fff" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.infoTitle}>Smart Choices at School</Text>
@@ -84,7 +84,7 @@ export function Kids8SchoolFuel() {
               <Text style={styles.examplesLabel}>Smart Choices:</Text>
               <View style={styles.examplesRow}>
                 {todaysMission.examples.map((ex, i) => (
-                  <LinearGradient key={i} colors={['#0d9488', '#0891b2']} style={styles.exampleTag}>
+                  <LinearGradient key={i} colors={['#0d9488', '#EC4899']} style={styles.exampleTag}>
                     <Text style={styles.exampleTagText}>✓ {ex}</Text>
                   </LinearGradient>
                 ))}
@@ -159,9 +159,9 @@ const styles = StyleSheet.create({
   missionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
   missionHeaderText: { fontSize: 16, fontWeight: '800', color: '#fff' },
   missionTitle: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 },
-  missionDesc: { fontSize: 14, color: '#bfdbfe', textAlign: 'center', marginBottom: 14 },
+  missionDesc: { fontSize: 14, color: '#DDD6FE', textAlign: 'center', marginBottom: 14 },
   examplesBox: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 12, marginBottom: 12 },
-  examplesLabel: { fontSize: 11, fontWeight: '800', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  examplesLabel: { fontSize: 11, fontWeight: '800', color: '#C4B5FD', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
   examplesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   exampleTag: { borderRadius: 50, paddingHorizontal: 12, paddingVertical: 6 },
   exampleTagText: { fontSize: 12, fontWeight: '700', color: '#fff' },

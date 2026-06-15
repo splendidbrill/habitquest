@@ -12,8 +12,8 @@ import { ChevronRight, Trophy } from 'lucide-react-native';
 const sports = [
   { id: 'football', name: 'Football', emoji: '⚽', colors: ['#16a34a', '#059669'] as [string, string] },
   { id: 'basketball', name: 'Basketball', emoji: '🏀', colors: ['#ea580c', '#d97706'] as [string, string] },
-  { id: 'running', name: 'Running', emoji: '🏃', colors: ['#2563eb', '#0891b2'] as [string, string] },
-  { id: 'swimming', name: 'Swimming', emoji: '🏊', colors: ['#0891b2', '#2563eb'] as [string, string] },
+  { id: 'running', name: 'Running', emoji: '🏃', colors: ['#8B5CF6', '#EC4899'] as [string, string] },
+  { id: 'swimming', name: 'Swimming', emoji: '🏊', colors: ['#EC4899', '#8B5CF6'] as [string, string] },
   { id: 'cycling', name: 'Cycling', emoji: '🚴', colors: ['#9333ea', '#db2777'] as [string, string] },
   { id: 'tennis', name: 'Tennis', emoji: '🎾', colors: ['#ca8a04', '#65a30d'] as [string, string] },
 ];
@@ -25,7 +25,7 @@ const teams = [
   { id: 'man-city', name: 'Man City', colors: ['#6CABDD', '#FFFFFF'] as [string, string], sport: 'football' },
   { id: 'lakers', name: 'Lakers', colors: ['#552583', '#FDB927'] as [string, string], sport: 'basketball' },
   { id: 'warriors', name: 'Warriors', colors: ['#1D428A', '#FFC72C'] as [string, string], sport: 'basketball' },
-  { id: 'no-team', name: 'No Team', colors: ['#1e293b', '#0ea5e9'] as [string, string], sport: 'all' },
+  { id: 'no-team', name: 'No Team', colors: ['#3B0764', '#0ea5e9'] as [string, string], sport: 'all' },
 ];
 
 const athletes = [
@@ -67,10 +67,10 @@ export function Kids8PersonalizationSetup() {
     : athletes;
 
   const progressColors = (active: boolean): [string, string] =>
-    active ? ['#2563eb', '#0891b2'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)'];
+    active ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)'];
 
   return (
-    <LinearGradient colors={['#0f172a', '#1e293b', '#0f172a']} style={styles.container}>
+    <LinearGradient colors={['#2D1B4E', '#3B0764', '#2D1B4E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Progress Bar */}
@@ -105,7 +105,7 @@ export function Kids8PersonalizationSetup() {
                       style={styles.sportCard}
                     >
                       <Text style={styles.sportEmoji}>{sport.emoji}</Text>
-                      <Text style={[styles.sportName, { color: selectedSport === sport.id ? '#fff' : '#94a3b8' }]}>
+                      <Text style={[styles.sportName, { color: selectedSport === sport.id ? '#fff' : '#A78BFA' }]}>
                         {sport.name}
                       </Text>
                     </LinearGradient>
@@ -114,7 +114,7 @@ export function Kids8PersonalizationSetup() {
               </View>
 
               <TouchableOpacity activeOpacity={0.85} onPress={() => setStep(2)} disabled={!selectedSport}>
-                <LinearGradient colors={selectedSport ? ['#2563eb', '#0891b2'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+                <LinearGradient colors={selectedSport ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                   <Text style={[styles.btnText, !selectedSport && styles.btnDisabled]}>Continue</Text>
                   <ChevronRight size={22} color={selectedSport ? '#fff' : 'rgba(255,255,255,0.4)'} />
                 </LinearGradient>
@@ -154,7 +154,7 @@ export function Kids8PersonalizationSetup() {
                   <Text style={styles.backBtnText}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.85} onPress={() => setStep(3)} disabled={!selectedTeam} style={{ flex: 2 }}>
-                  <LinearGradient colors={selectedTeam ? ['#2563eb', '#0891b2'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
+                  <LinearGradient colors={selectedTeam ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
                     <Text style={[styles.btnText, !selectedTeam && styles.btnDisabled]}>Continue</Text>
                     <ChevronRight size={22} color={selectedTeam ? '#fff' : 'rgba(255,255,255,0.4)'} />
                   </LinearGradient>
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   stepLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: 24 },
   stepEmoji: { fontSize: 56, textAlign: 'center', marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '800', color: '#ffffff', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#94a3b8', marginBottom: 24, textAlign: 'center' },
+  subtitle: { fontSize: 16, color: '#A78BFA', marginBottom: 24, textAlign: 'center' },
   sportsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20, justifyContent: 'center' },
   sportBtnWrap: { width: '46%' },
   sportCard: { borderRadius: 20, padding: 20, alignItems: 'center' },

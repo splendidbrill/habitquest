@@ -73,7 +73,13 @@ export function KidsDailyMission() {
   const [missionStarted, setMissionStarted] = useState(false);
 
   const handleComplete = async () => {
-    await storage.setItem('kidsMissionCompleted', 'true');
+    // Store the completion DATE (not a sticky boolean) so the home screen only
+    // shows "come back tomorrow" for the rest of today and offers a fresh
+    // mission tomorrow — fixes the day-2+ dead end (§3.3.4).
+    await storage.setItem(
+      'kidsMissionCompletedDate',
+      new Date().toDateString(),
+    );
     const adventures = parseInt(
       (await storage.getItem('kidsAdventuresCompleted')) ?? '0',
     );

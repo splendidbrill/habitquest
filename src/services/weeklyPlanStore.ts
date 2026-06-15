@@ -18,7 +18,8 @@ export type DayMeal = {
   name: string;
   reason: string;
   time: string;
-  cost: string;
+  // Retained for back-compat; no longer surfaced in the UI (price point removed).
+  cost?: string;
   ingredients: string[];
   leftoverNote?: string;
   why?: string[]; // Phase 7 transparency ("Why am I seeing this?")

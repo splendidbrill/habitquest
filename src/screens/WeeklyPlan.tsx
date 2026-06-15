@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -18,8 +19,12 @@ import {
   ChevronUp,
   Info,
   Sparkles,
+  Heart,
+  ChevronRight,
 } from 'lucide-react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation';
 import { supabase } from '../lib/supabase';
 import { storage } from '../utils/storage';
 import { loadFamilyProfile, type FamilyProfile } from '../data/familyProfile';
@@ -37,14 +42,25 @@ import {
   type ActivityReaction,
 } from '../services/feedbackService';
 import { type DayPlan, FALLBACK_PLAN } from '../services/weeklyPlanStore';
+import {
+  getHealthierInfo,
+  NUTRITION_PILLARS,
+  NUTRITION_DOT,
+} from '../services/healthierMeal';
+import {
+  selectDailyMovementQuest,
+  MOVEMENT_INSPIRATION,
+  ageToBand,
+  type MovementQuest,
+} from '../data/movementQuests';
 import { colors, typography, withOpacity } from '../theme';
 
 // Warm, non-judgemental one-tap reactions. "disaster" stays internal —
 // the parent only ever sees the 😬 face.
 const MEAL_REACTIONS: { value: MealReaction; emoji: string; label: string }[] =
   [
-    { value: 'everyone_ate', emoji: '😋', label: 'All ate it' },
-    { value: 'most_ate', emoji: '🙂', label: 'Most did' },
+    { value: 'everyone_ate', emoji: '😋', label: 'Ate it all' },
+    { value: 'most_ate', emoji: '🙂', label: 'Ate most' },
     { value: 'mixed', emoji: '😐', label: 'Mixed' },
     { value: 'disaster', emoji: '😬', label: 'Not today' },
   ];
@@ -60,6 +76,16 @@ const ACTIVITY_REACTIONS: {
 ];
 
 const FEEDBACK_KEY = 'planFeedback';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// Surfaced here too (mirrors the Parent tab's "Support & Guidance" section) so
+// the help pages aren't buried two screens deep.
+const SUPPORT_LINKS: { label: string; screen: keyof RootStackParamList }[] = [
+  { label: 'Handling resistance to new foods', screen: 'HandlingResistance' },
+  { label: 'Supportive responses guide', screen: 'SupportiveResponses' },
+  { label: 'Difficult behaviour tips', screen: 'DifficultBehaviors' },
+];
 
 const PILLAR_COLORS: Record<string, string> = {
   movement: '#f97316',
@@ -112,18 +138,29 @@ function enrichPlanWhy(
 }
 
 export function WeeklyPlan() {
+  const navigation = useNavigation<Nav>();
   const { activeChild } = useChild();
   const [plan, setPlan] = useState<DayPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>('Monday');
   const [hasProfile, setHasProfile] = useState(false);
+  // Canonical profile kept in state to personalise the daily Movement Quest.
+  const [familyProfile, setFamilyProfile] = useState<FamilyProfile | null>(
+    null,
+  );
+  // "Want extra inspiration?" links toggle.
+  const [inspoOpen, setInspoOpen] = useState(false);
   // One-tap reaction state, keyed `${day}:meal` / `${day}:activity`.
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   // "Why am I seeing this?" expand state, same key scheme.
   const [whyOpen, setWhyOpen] = useState<Record<string, boolean>>({});
+  // Portion-guide expand state, keyed by day name.
+  const [portionsOpen, setPortionsOpen] = useState<Record<string, boolean>>({});
 
   const toggleWhy = (key: string) =>
     setWhyOpen(prev => ({ ...prev, [key]: !prev[key] }));
+  const togglePortions = (day: string) =>
+    setPortionsOpen(prev => ({ ...prev, [day]: !prev[day] }));
 
   const submitMealReaction = async (day: DayPlan, reaction: MealReaction) => {
     const key = `${day.day}:meal`;
@@ -158,6 +195,10 @@ export function WeeklyPlan() {
         setFeedback(JSON.parse(savedFeedback));
       } catch {}
     }
+
+    // Keep the canonical profile in state so the Movement Quest personalises
+    // even when we short-circuit on the cached plan below.
+    setFamilyProfile(await loadFamilyProfile());
 
     // Try cached plan first
     const cached = await storage.getItem('weeklyPlan');
@@ -246,13 +287,12 @@ Family profile: ${profile}${candidateBlock}
 Rules:
 - Tuesday and Thursday dinners should use leftovers from Monday/Wednesday
 - Activities framed as play/missions, NOT "exercise" — children should want to do them
-- Meals must respect budget, time, dietary requirements, and cultural background
-- Keep costs realistic to the stated budget
+- Meals must respect budget, time, dietary requirements, and cultural background (keep them realistic for the stated budget, but do NOT show a price)
 - Activity pillar: one of movement, nutrition, confidence, sleep
 - For each meal also add a short "whyHealthier" (how it beats a typical convenience version) and a "familyTakeaway" (one reusable habit) — keep each under 12 words
 
 Return ONLY valid JSON array with exactly 7 items:
-[{"day":"Monday","meal":{"name":"...","reason":"...","time":"X min","cost":"£X-X","ingredients":["..."],"whyHealthier":"...","familyTakeaway":"..."},"activity":{"name":"...","description":"...","duration":"X min","pillar":"movement"}},...]`;
+[{"day":"Monday","meal":{"name":"...","reason":"...","time":"X min","ingredients":["..."],"whyHealthier":"...","familyTakeaway":"..."},"activity":{"name":"...","description":"...","duration":"X min","pillar":"movement"}},...]`;
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-proxy', {
@@ -341,6 +381,83 @@ Return ONLY valid JSON array with exactly 7 items:
         </View>
       )}
 
+      {/* Today's Movement Quest — same quest the child sees (shared library) */}
+      {(() => {
+        const band =
+          activeChild?.age_group ?? ageToBand(familyProfile?.childAge);
+        const quest: MovementQuest = selectDailyMovementQuest(
+          band,
+          familyProfile,
+        );
+        return (
+          <View style={s.questCard}>
+            <View style={s.questHeader}>
+              <Text style={s.questEmoji}>{quest.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.questKicker}>TODAY'S MOVEMENT QUEST</Text>
+                <Text style={s.questTitle}>{quest.title}</Text>
+              </View>
+              <View style={s.questXp}>
+                <Text style={s.questXpText}>+{quest.xp} XP</Text>
+              </View>
+            </View>
+
+            <View style={s.questThemeRow}>
+              <Text style={s.questThemePill}>🎬 {quest.theme}</Text>
+              <Text style={s.questThemePill}>⏱ {quest.durationMin} min</Text>
+            </View>
+
+            <Text style={s.questChallenge}>{quest.challenge}</Text>
+
+            <View style={s.questMetaRow}>
+              <Text style={s.questMetaLabel}>🎒 Kit: </Text>
+              <Text style={s.questMetaValue}>{quest.equipment}</Text>
+            </View>
+            <View style={s.questMetaRow}>
+              <Text style={s.questMetaLabel}>💪 Builds: </Text>
+              <Text style={s.questMetaValue}>{quest.skills.join(', ')}</Text>
+            </View>
+
+            {quest.upgrade ? (
+              <View style={s.questUpgrade}>
+                <Text style={s.questUpgradeText}>
+                  ⤴ Level up: {quest.upgrade}
+                </Text>
+              </View>
+            ) : null}
+
+            <Text style={s.questWhy}>💡 {quest.whyMatters}</Text>
+
+            {/* Want extra inspiration? */}
+            <TouchableOpacity
+              onPress={() => setInspoOpen(o => !o)}
+              style={s.inspoToggle}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Text style={s.inspoToggleText}>Want extra inspiration?</Text>
+              {inspoOpen ? (
+                <ChevronUp size={14} color="#f97316" />
+              ) : (
+                <ChevronDown size={14} color="#f97316" />
+              )}
+            </TouchableOpacity>
+            {inspoOpen && (
+              <View style={s.inspoList}>
+                {MOVEMENT_INSPIRATION.map(link => (
+                  <TouchableOpacity
+                    key={link.url}
+                    onPress={() => Linking.openURL(link.url)}
+                    style={s.inspoLink}
+                  >
+                    <Text style={s.inspoLinkText}>↗ {link.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      })()}
+
       {/* Day cards */}
       {plan.map((day, i) => {
         const isExpanded = expanded === day.day;
@@ -349,6 +466,12 @@ Return ONLY valid JSON array with exactly 7 items:
         const isToday =
           new Date().getDay() === (i + 1) % 7 ||
           (i === 6 && new Date().getDay() === 0);
+        // Deterministic, static healthier-meal content (Phase C.1).
+        const healthier = getHealthierInfo({
+          name: day.meal?.name ?? '',
+          ingredients: day.meal?.ingredients,
+        });
+        const showPortions = portionsOpen[day.day];
 
         return (
           <View key={day.day} style={[s.dayCard, isToday && s.dayCardToday]}>
@@ -402,9 +525,7 @@ Return ONLY valid JSON array with exactly 7 items:
                   <View style={s.sectionHeader}>
                     <Apple size={16} color="#16a34a" />
                     <Text style={s.sectionTitle}>Dinner</Text>
-                    <Text style={s.mealMeta}>
-                      ⏱ {day.meal?.time} · {day.meal?.cost}
-                    </Text>
+                    <Text style={s.mealMeta}>⏱ {day.meal?.time}</Text>
                     {day.meal?.why?.length ? (
                       <TouchableOpacity
                         onPress={() => toggleWhy(`${day.day}:meal`)}
@@ -471,25 +592,107 @@ Return ONLY valid JSON array with exactly 7 items:
                     </View>
                   ) : null}
 
-                  {/* Healthy-swap rationale (Phase 7) */}
-                  {(day.meal?.whyHealthier || day.meal?.familyTakeaway) && (
-                    <View style={s.healthierCard}>
-                      <View style={s.healthierHeader}>
-                        <Sparkles size={13} color="#15803d" />
-                        <Text style={s.healthierTitle}>Healthier choice</Text>
-                      </View>
-                      {day.meal.whyHealthier ? (
-                        <Text style={s.healthierText}>
-                          {day.meal.whyHealthier}
-                        </Text>
-                      ) : null}
-                      {day.meal.familyTakeaway ? (
-                        <Text style={s.takeawayText}>
-                          💡 {day.meal.familyTakeaway}
-                        </Text>
-                      ) : null}
+                  {/* Healthier-meal details (Phase C.1) */}
+                  <View style={s.healthierCard}>
+                    <View style={s.healthierHeader}>
+                      <Sparkles size={13} color="#15803d" />
+                      <Text style={s.healthierTitle}>
+                        How to make this meal healthier
+                      </Text>
                     </View>
-                  )}
+
+                    {/* Why this version is healthier (AI line preferred, else static) */}
+                    <Text style={s.healthierText}>
+                      {day.meal?.whyHealthier || healthier.whyHealthier}
+                    </Text>
+
+                    {/* Nutrition snapshot — icons only, no calories */}
+                    <View style={s.nutritionRow}>
+                      {NUTRITION_PILLARS.map(p => (
+                        <View key={p.key} style={s.nutritionChip}>
+                          <Text style={s.nutritionDot}>
+                            {NUTRITION_DOT[healthier.nutrition[p.key]]}
+                          </Text>
+                          <Text style={s.nutritionLabel}>
+                            {p.icon} {p.label}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* Small Wins */}
+                    <Text style={s.smallWinsTitle}>✨ Small wins</Text>
+                    {healthier.smallWins.map((w, wi) => (
+                      <Text key={wi} style={s.smallWinItem}>
+                        • {w}
+                      </Text>
+                    ))}
+
+                    {day.meal?.familyTakeaway ? (
+                      <Text style={s.takeawayText}>
+                        💡 {day.meal.familyTakeaway}
+                      </Text>
+                    ) : null}
+
+                    {/* Age-adjusted, hand-based portion guide (collapsible) */}
+                    <TouchableOpacity
+                      onPress={() => togglePortions(day.day)}
+                      style={s.portionToggle}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Text style={s.portionToggleText}>
+                        🖐 Portion guide (by age)
+                      </Text>
+                      {showPortions ? (
+                        <ChevronUp size={14} color="#15803d" />
+                      ) : (
+                        <ChevronDown size={14} color="#15803d" />
+                      )}
+                    </TouchableOpacity>
+
+                    {showPortions && (
+                      <View style={s.portionTable}>
+                        <View style={s.portionHeaderRow}>
+                          <Text
+                            style={[
+                              s.portionCell,
+                              s.portionLabelCell,
+                              s.portionHeadText,
+                            ]}
+                          >
+                            {' '}
+                          </Text>
+                          <Text style={[s.portionCell, s.portionHeadText]}>
+                            Adult
+                          </Text>
+                          <Text style={[s.portionCell, s.portionHeadText]}>
+                            6–8
+                          </Text>
+                          <Text style={[s.portionCell, s.portionHeadText]}>
+                            8–10
+                          </Text>
+                          <Text style={[s.portionCell, s.portionHeadText]}>
+                            10–12
+                          </Text>
+                        </View>
+                        {healthier.portions.map((row, ri) => (
+                          <View key={ri} style={s.portionRow}>
+                            <Text style={[s.portionCell, s.portionLabelCell]}>
+                              {row.icon} {row.label}
+                            </Text>
+                            <Text style={s.portionCell}>{row.adult}</Text>
+                            <Text style={s.portionCell}>{row.age6to8}</Text>
+                            <Text style={s.portionCell}>{row.age8to10}</Text>
+                            <Text style={s.portionCell}>{row.age10to12}</Text>
+                          </View>
+                        ))}
+                        <Text style={s.portionNote}>
+                          Tip: measure with your child’s own hand — it scales
+                          the portion to their size.
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </LinearGradient>
 
                 {/* Activity section */}
@@ -586,6 +789,24 @@ Return ONLY valid JSON array with exactly 7 items:
           </View>
         );
       })}
+
+      {/* Support & guidance — surfaced here as well as the Parent tab */}
+      <View style={s.supportCard}>
+        <View style={s.supportHeader}>
+          <Heart size={16} color="#ec4899" />
+          <Text style={s.supportTitle}>Support & guidance</Text>
+        </View>
+        {SUPPORT_LINKS.map(item => (
+          <TouchableOpacity
+            key={item.screen}
+            style={s.supportBtn}
+            onPress={() => navigation.navigate(item.screen as never)}
+          >
+            <Text style={s.supportBtnText}>{item.label}</Text>
+            <ChevronRight size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <View style={{ height: 24 }} />
     </ScrollView>
@@ -794,7 +1015,170 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: '#15803d',
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 8,
     lineHeight: 17,
   },
+
+  nutritionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  nutritionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  nutritionDot: { fontSize: 11 },
+  nutritionLabel: { fontSize: 11, color: '#374151', fontWeight: '600' },
+
+  smallWinsTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#15803d',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  smallWinItem: { fontSize: 12, color: '#374151', lineHeight: 18 },
+
+  portionToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#dcfce7',
+  },
+  portionToggleText: { fontSize: 12, fontWeight: '800', color: '#15803d' },
+  portionTable: { marginTop: 8, gap: 6 },
+  portionHeaderRow: { flexDirection: 'row', gap: 4 },
+  portionRow: {
+    flexDirection: 'row',
+    gap: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    paddingTop: 6,
+  },
+  portionCell: {
+    flex: 1,
+    fontSize: 10,
+    color: '#4b5563',
+    lineHeight: 14,
+  },
+  portionLabelCell: { flex: 1.6, fontWeight: '700', color: '#374151' },
+  portionHeadText: { fontWeight: '800', color: '#15803d', fontSize: 10 },
+  portionNote: {
+    fontSize: 10,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 4,
+    lineHeight: 14,
+  },
+
+  questCard: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#fed7aa',
+  },
+  questHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  questEmoji: { fontSize: 30 },
+  questKicker: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#f97316',
+    letterSpacing: 0.6,
+  },
+  questTitle: { fontSize: 17, fontWeight: '800', color: '#111827' },
+  questXp: {
+    backgroundColor: '#f97316',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  questXpText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  questThemeRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  questThemePill: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9a3412',
+    backgroundColor: '#ffedd5',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    overflow: 'hidden',
+  },
+  questChallenge: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+    marginTop: 10,
+  },
+  questMetaRow: { flexDirection: 'row', marginTop: 6, flexWrap: 'wrap' },
+  questMetaLabel: { fontSize: 12, fontWeight: '700', color: '#6b7280' },
+  questMetaValue: { fontSize: 12, color: '#374151', flex: 1 },
+  questUpgrade: {
+    backgroundColor: '#ffedd5',
+    borderRadius: 10,
+    padding: 8,
+    marginTop: 10,
+  },
+  questUpgradeText: { fontSize: 12, color: '#9a3412', lineHeight: 17 },
+  questWhy: {
+    fontSize: 12,
+    color: '#15803d',
+    fontWeight: '600',
+    lineHeight: 17,
+    marginTop: 10,
+  },
+  inspoToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#fed7aa',
+  },
+  inspoToggleText: { fontSize: 12, fontWeight: '800', color: '#f97316' },
+  inspoList: { marginTop: 8, gap: 8 },
+  inspoLink: { paddingVertical: 2 },
+  inspoLinkText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
+
+  supportCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  supportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  supportTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  supportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  supportBtnText: { fontSize: 14, color: '#374151', flex: 1, paddingRight: 8 },
 });

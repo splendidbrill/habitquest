@@ -1,0 +1,11 @@
+
+  # 8-10yo
+
+  This is a code bundle for 8-10yo. The original project is available at https://www.figma.com/design/CeJUrHN43BMItZHegBtwrs/8-10yo.
+
+  ## Running the code
+
+  Run `npm i` to install the dependencies.
+
+  Run `npm run dev` to start the development server.
+  

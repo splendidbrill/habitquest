@@ -313,6 +313,22 @@ export function ParentHome() {
           </>
         )}
 
+        {/* Pantry Mode shortcut */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('PantryMode')}
+          style={s.challengesBtn}
+        >
+          <Text style={s.challengesBtnEmoji}>🥫</Text>
+          <View style={s.challengesBtnText}>
+            <Text style={s.challengesBtnTitle}>Pantry Mode</Text>
+            <Text style={s.challengesBtnSub}>
+              Build meals from what you have in
+            </Text>
+          </View>
+          <ChevronRight size={18} color="#374151" />
+        </TouchableOpacity>
+
         {/* Family challenges shortcut */}
         <TouchableOpacity
           activeOpacity={0.85}
