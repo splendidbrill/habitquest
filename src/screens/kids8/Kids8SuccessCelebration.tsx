@@ -7,6 +7,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
+import { useChild } from '../../context/ChildContext';
+import { recordMissionComplete } from '../../services/streakService';
 
 const motivationalMessages = [
   'Champions aren\'t made in gyms. Champions are made from something they have deep inside them - a desire, a dream, a vision! Keep going!',
@@ -19,6 +21,7 @@ const motivationalMessages = [
 
 export function Kids8SuccessCelebration() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { activeChild, refreshChild } = useChild();
   const [lastUnlock, setLastUnlock] = useState('Achievement');
   const [completedMissions, setCompletedMissions] = useState(0);
   const [userName, setUserName] = useState('Champion');
@@ -39,6 +42,11 @@ export function Kids8SuccessCelebration() {
         const str = await storage.getItem('kids8CurrentStreak');
         await storage.setItem('kids8CurrentStreak', String(parseInt(str || '0') + 1));
         await storage.setItem('kids8LastActiveDate', today);
+      }
+      // Persist to Supabase so the streak AND the parent Progress tab update.
+      if (activeChild?.id) {
+        await recordMissionComplete(activeChild.id);
+        await refreshChild();
       }
     };
     init();

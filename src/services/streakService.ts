@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { Pillar } from './syncService';
 
 // ─── Milestone definitions ────────────────────────────────────────────────────
 export type StreakMilestone = {
@@ -66,6 +67,57 @@ export async function checkAndGrantWeeklyFreeze(childId: string): Promise<void> 
     .from('children')
     .update({ streak_freezes: 1, last_freeze_reset: weekStart })
     .eq('id', childId);
+}
+
+// ─── Record a completed mission (server-side) ────────────────────────────────
+// The single place a child mission completion is persisted to Supabase. It:
+//   1. logs the completion to `mission_completions` (feeds the parent Progress
+//      tab via calculatePillarScores), and
+//   2. advances `children.streak` + `last_active_date` + `xp`.
+// Self-guards to once per day per child, so re-mounting the celebration screen
+// (or doing a second mission the same day) can't inflate the streak or scores.
+// Callers should refreshChild() afterwards so the child UI reflects the change.
+export async function recordMissionComplete(
+  childId: string,
+  pillar: Pillar = 'movement',
+  xpReward = 5,
+): Promise<{ newStreak: number; milestone: StreakMilestone | null }> {
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data: child } = await supabase
+    .from('children')
+    .select('streak, last_active_date, xp')
+    .eq('id', childId)
+    .single();
+  if (!child) return { newStreak: 0, milestone: null };
+
+  // Already active today — nothing more to do (idempotent per day).
+  if (child.last_active_date === today) {
+    return { newStreak: child.streak ?? 0, milestone: null };
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  const newStreak =
+    child.last_active_date === yesterdayStr ? (child.streak ?? 0) + 1 : 1;
+
+  await supabase.from('mission_completions').insert({
+    child_id: childId,
+    pillar,
+  });
+
+  await supabase
+    .from('children')
+    .update({
+      streak: newStreak,
+      last_active_date: today,
+      xp: (child.xp ?? 0) + xpReward,
+    })
+    .eq('id', childId);
+
+  const milestone = await checkStreakMilestone(childId, newStreak);
+  return { newStreak, milestone };
 }
 
 // ─── Check if a streak just hit a milestone ───────────────────────────────────

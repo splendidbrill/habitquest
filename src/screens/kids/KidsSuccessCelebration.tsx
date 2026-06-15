@@ -14,6 +14,7 @@ import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
 import { useChild } from '../../context/ChildContext';
+import { recordMissionComplete } from '../../services/streakService';
 import {
   recordActivityFeedback,
   type ActivityReaction,
@@ -36,7 +37,7 @@ export function KidsSuccessCelebration() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route =
     useRoute<RouteProp<RootStackParamList, 'KidsSuccessCelebration'>>();
-  const { activeChild } = useChild();
+  const { activeChild, refreshChild } = useChild();
   const { missionId, missionTitle, tags } = route.params ?? {};
   const [stars, setStars] = useState(0);
   const [picked, setPicked] = useState<ActivityReaction | null>(null);
@@ -56,6 +57,11 @@ export function KidsSuccessCelebration() {
       if (!badges.includes('adventure-star')) {
         badges.push('adventure-star');
         await storage.setItem('kidsEarnedBadges', JSON.stringify(badges));
+      }
+      // Persist to Supabase so the streak AND the parent Progress tab update.
+      if (activeChild?.id) {
+        await recordMissionComplete(activeChild.id, 'nutrition');
+        await refreshChild();
       }
     })();
   }, []);
