@@ -60,7 +60,12 @@ export function KidsSuccessCelebration() {
       }
       // Persist to Supabase so the streak AND the parent Progress tab update.
       if (activeChild?.id) {
-        await recordMissionComplete(activeChild.id, 'nutrition');
+        await recordMissionComplete(
+          activeChild.id,
+          'nutrition',
+          5,
+          missionTitle,
+        );
         await refreshChild();
       }
     })();

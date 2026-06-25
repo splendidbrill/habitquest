@@ -43,7 +43,7 @@ const workouts: Workout[] = [
       { name: 'Arm circles', duration: 15, icon: '💪' },
       { name: 'Quick march', duration: 15, icon: '🚶' },
     ],
-    colors: ['#22d3ee', '#0891b2'],
+    colors: ['#22d3ee', '#EC4899'],
   },
   {
     id: 'after-school',

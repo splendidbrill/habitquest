@@ -18,7 +18,7 @@
 // ============================================================
 
 import type { Cuisine } from '../data/mealArchetypes';
-import { mealLibrary, type LibraryMeal } from '../data/mealLibrary';
+import { mealLibrary, type LibraryMeal } from '../data/mealDatabase';
 import type { FamilyProfile } from '../data/familyProfile';
 import type { PreferenceModel } from './preferenceEngine';
 

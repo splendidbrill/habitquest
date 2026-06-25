@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Pillar } from './syncService';
+import { writeWeeklyPillarSnapshot } from './pillarScore';
 
 // ─── Milestone definitions ────────────────────────────────────────────────────
 export type StreakMilestone = {
@@ -83,6 +84,7 @@ export async function recordMissionComplete(
   childId: string,
   pillar: Pillar = 'movement',
   xpReward = 5,
+  missionTitle = 'Daily mission',
 ): Promise<{ newStreak: number; milestone: StreakMilestone | null }> {
   const today = new Date().toISOString().split('T')[0];
 
@@ -93,7 +95,20 @@ export async function recordMissionComplete(
     .single();
   if (!child) return { newStreak: 0, milestone: null };
 
-  // Already active today — nothing more to do (idempotent per day).
+  // The completion row is logged every time (drives pillar scores + the parent
+  // Progress "Recent missions" list); streak/XP only advance once per day.
+  await supabase.from('mission_completions').insert({
+    child_id: childId,
+    pillar,
+    mission_title: missionTitle,
+    xp_earned: xpReward,
+  });
+
+  // Re-snapshot this week's pillar scores so the parent Progress tab reflects
+  // the new mission immediately (§1.5 / §2.4), not just after a weekly check-in.
+  await writeWeeklyPillarSnapshot(childId);
+
+  // Already active today — streak/XP are idempotent per day.
   if (child.last_active_date === today) {
     return { newStreak: child.streak ?? 0, milestone: null };
   }
@@ -103,11 +118,6 @@ export async function recordMissionComplete(
   const yesterdayStr = yesterday.toISOString().split('T')[0];
   const newStreak =
     child.last_active_date === yesterdayStr ? (child.streak ?? 0) + 1 : 1;
-
-  await supabase.from('mission_completions').insert({
-    child_id: childId,
-    pillar,
-  });
 
   await supabase
     .from('children')
@@ -149,16 +159,14 @@ export async function checkStreakMilestone(
   });
 
   // Award cosmetic title
-  await supabase
-    .from('cosmetic_titles')
-    .upsert(
-      {
-        child_id: childId,
-        title_id: milestone.titleId,
-        title_label: milestone.titleLabel,
-      },
-      { onConflict: 'child_id,title_id' },
-    );
+  await supabase.from('cosmetic_titles').upsert(
+    {
+      child_id: childId,
+      title_id: milestone.titleId,
+      title_label: milestone.titleLabel,
+    },
+    { onConflict: 'child_id,title_id' },
+  );
 
   return milestone;
 }

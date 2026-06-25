@@ -23,12 +23,19 @@ import {
 import { RecommendedMissions } from '../../components/RecommendedMissions';
 import { DailySpin, useDailySpin } from '../../components/DailySpin';
 import { ParentReactionBanner } from '../../components/ParentReactionBanner';
-import { loadFamilyProfile, type FamilyProfile } from '../../data/familyProfile';
+import {
+  loadFamilyProfile,
+  type FamilyProfile,
+} from '../../data/familyProfile';
 import {
   selectDailyMovementQuest,
   type MovementQuest,
 } from '../../data/movementQuests';
-import { kids6Theme as T, KIDS6_BG_GRADIENT, KIDS6_GRADIENTS } from './kids6Theme';
+import {
+  kids6Theme as T,
+  KIDS6_BG_GRADIENT,
+  KIDS6_GRADIENTS,
+} from './kids6Theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -60,23 +67,89 @@ type Tile = {
 };
 
 const FOOD_TILES: Tile[] = [
-  { icon: '🍓', label: 'Food & Veggie Discovery', desc: '5 new foods to try', colors: KIDS6_GRADIENTS.discovery, screen: 'KidsFoodDiscovery' },
-  { icon: '🍽️', label: 'Choose Dinner', desc: 'Pick what sounds yummy', colors: KIDS6_GRADIENTS.dinner, screen: 'KidsDinnerChoice' },
-  { icon: '👨‍🍳', label: 'Kitchen Helper', desc: 'Help with cooking', colors: KIDS6_GRADIENTS.kitchen, screen: 'KidsKitchenHelper' },
+  {
+    icon: '🍓',
+    label: 'Food & Veggie Discovery',
+    desc: '5 new foods to try',
+    colors: KIDS6_GRADIENTS.discovery,
+    screen: 'KidsFoodDiscovery',
+  },
+  {
+    icon: '🍽️',
+    label: 'Choose Dinner',
+    desc: 'Pick what sounds yummy',
+    colors: KIDS6_GRADIENTS.dinner,
+    screen: 'KidsDinnerChoice',
+  },
+  {
+    icon: '👨‍🍳',
+    label: 'Kitchen Helper',
+    desc: 'Help with cooking',
+    colors: KIDS6_GRADIENTS.kitchen,
+    screen: 'KidsKitchenHelper',
+  },
 ];
 
 const GAME_TILES: Tile[] = [
-  { icon: '🎮', label: 'Play Games', desc: 'Fun healthy games', colors: KIDS6_GRADIENTS.games, screen: 'KidsGameHub' },
-  { icon: '🦸', label: 'Superhero Workout', desc: 'Be a hero!', colors: KIDS6_GRADIENTS.superhero, screen: 'KidsSuperheroWorkout' },
+  {
+    icon: '🎮',
+    label: 'Play Games',
+    desc: 'Fun healthy games',
+    colors: KIDS6_GRADIENTS.games,
+    screen: 'KidsGameHub',
+  },
+  {
+    icon: '🦸',
+    label: 'Superhero Workout',
+    desc: 'Be a hero!',
+    colors: KIDS6_GRADIENTS.superhero,
+    screen: 'KidsSuperheroWorkout',
+  },
 ];
 
 const EXPLORE_TILES: Tile[] = [
-  { icon: '⭐', label: 'My Rewards', desc: 'Stars & badges', colors: KIDS6_GRADIENTS.rewards, screen: 'KidsRewardsScreen' },
-  { icon: '🎁', label: 'My Collection', desc: 'Your cool items', colors: KIDS6_GRADIENTS.collection, screen: 'KidsCollectiblesViewer' },
-  { icon: '🗺️', label: 'Adventure Map', desc: "How far you've gone", colors: KIDS6_GRADIENTS.map, screen: 'KidsProgressMap' },
-  { icon: '🦸', label: 'Buddy Status', desc: "Your buddy's level", colors: KIDS6_GRADIENTS.superhero, screen: 'KidsAvatarStatus' },
-  { icon: '📊', label: 'Weekly Check-in', desc: 'Update your world', colors: KIDS6_GRADIENTS.checkin, screen: 'PillarCheckIn' },
-  { icon: '🤝', label: 'Family Challenges', desc: 'Earn XP together', colors: KIDS6_GRADIENTS.family, screen: 'KidsFamilyChallenges' },
+  {
+    icon: '⭐',
+    label: 'My Rewards',
+    desc: 'Stars & badges',
+    colors: KIDS6_GRADIENTS.rewards,
+    screen: 'KidsRewardsScreen',
+  },
+  {
+    icon: '🎁',
+    label: 'My Collection',
+    desc: 'Your cool items',
+    colors: KIDS6_GRADIENTS.collection,
+    screen: 'KidsCollectiblesViewer',
+  },
+  {
+    icon: '🗺️',
+    label: 'Adventure Map',
+    desc: "How far you've gone",
+    colors: KIDS6_GRADIENTS.map,
+    screen: 'KidsProgressMap',
+  },
+  {
+    icon: '🦸',
+    label: 'Buddy Status',
+    desc: "Your buddy's level",
+    colors: KIDS6_GRADIENTS.superhero,
+    screen: 'KidsAvatarStatus',
+  },
+  {
+    icon: '📊',
+    label: 'Weekly Check-in',
+    desc: 'Update your world',
+    colors: KIDS6_GRADIENTS.checkin,
+    screen: 'PillarCheckIn',
+  },
+  {
+    icon: '🤝',
+    label: 'Family Challenges',
+    desc: 'Earn XP together',
+    colors: KIDS6_GRADIENTS.family,
+    screen: 'KidsFamilyChallenges',
+  },
 ];
 
 export function KidsBuddyHome() {
@@ -87,7 +160,9 @@ export function KidsBuddyHome() {
   const [selectedBuddy, setSelectedBuddy] = useState('tiger');
   const [missionDone, setMissionDone] = useState(false);
   const [greetingTime, setGreetingTime] = useState('Hello');
-  const [buddyMood, setBuddyMood] = useState<'happy' | 'worried' | 'sad'>('happy');
+  const [buddyMood, setBuddyMood] = useState<'happy' | 'worried' | 'sad'>(
+    'happy',
+  );
   const [freezesAvailable, setFreezesAvailable] = useState(0);
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
 
@@ -125,8 +200,16 @@ export function KidsBuddyHome() {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(floatY, { toValue: -8, duration: 1000, useNativeDriver: true }),
-        Animated.timing(floatY, { toValue: 0, duration: 1000, useNativeDriver: true }),
+        Animated.timing(floatY, {
+          toValue: -8,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatY, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -172,8 +255,14 @@ export function KidsBuddyHome() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <TouchableOpacity activeOpacity={0.85} onPress={() => go('KidsAvatarStatus')}>
-                <LinearGradient colors={KIDS6_GRADIENTS.buddy} style={styles.avatar}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => go('KidsAvatarStatus')}
+              >
+                <LinearGradient
+                  colors={KIDS6_GRADIENTS.buddy}
+                  style={styles.avatar}
+                >
                   <Text style={styles.avatarEmoji}>{baseEmoji}</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -196,13 +285,18 @@ export function KidsBuddyHome() {
 
           {freezesAvailable > 0 && (
             <View style={styles.freezeBadge}>
-              <Text style={styles.freezeText}>🧊 {freezesAvailable} streak freeze</Text>
+              <Text style={styles.freezeText}>
+                🧊 {freezesAvailable} streak freeze
+              </Text>
             </View>
           )}
 
           {/* Animated buddy */}
           <Animated.View style={{ transform: [{ translateY: floatY }] }}>
-            <LinearGradient colors={KIDS6_GRADIENTS.buddy} style={styles.buddyCard}>
+            <LinearGradient
+              colors={KIDS6_GRADIENTS.buddy}
+              style={styles.buddyCard}
+            >
               <Text style={styles.buddyEmoji}>{emoji}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.buddyTitle}>Your buddy is ready!</Text>
@@ -225,7 +319,10 @@ export function KidsBuddyHome() {
 
           {/* Daily mission hero (D.1 date logic) */}
           {!missionDone ? (
-            <TouchableOpacity activeOpacity={0.9} onPress={() => go('KidsDailyMission')}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => go('KidsDailyMission')}
+            >
               <View style={styles.questCard}>
                 <Text style={styles.questEmoji}>{quest.emoji}</Text>
                 <View style={{ flex: 1 }}>
@@ -235,7 +332,9 @@ export function KidsBuddyHome() {
                     {quest.challenge}
                   </Text>
                   <View style={styles.startPill}>
-                    <Text style={styles.startPillText}>Start! 🚀  +{quest.xp} XP</Text>
+                    <Text style={styles.startPillText}>
+                      Start! 🚀 +{quest.xp} XP
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -244,7 +343,9 @@ export function KidsBuddyHome() {
             <View style={styles.doneCard}>
               <Text style={styles.doneEmoji}>🎉</Text>
               <Text style={styles.doneTitle}>Mission Complete!</Text>
-              <Text style={styles.doneSub}>Come back tomorrow for a new one! 🌟</Text>
+              <Text style={styles.doneSub}>
+                Come back tomorrow for a new one! 🌟
+              </Text>
             </View>
           )}
 
@@ -277,7 +378,11 @@ export function KidsBuddyHome() {
             { icon: '🗺️', label: 'Map', screen: 'KidsProgressMap' as const },
             { icon: '🎮', label: 'Games', screen: 'KidsGameHub' as const },
             { icon: '🍎', label: 'Food', screen: 'KidsFoodDiscovery' as const },
-            { icon: '⭐', label: 'Rewards', screen: 'KidsRewardsScreen' as const },
+            {
+              icon: '⭐',
+              label: 'Rewards',
+              screen: 'KidsRewardsScreen' as const,
+            },
           ].map(item => (
             <TouchableOpacity
               key={item.label}
@@ -373,8 +478,16 @@ const styles = StyleSheet.create({
   buddySub: { fontSize: 15, color: 'rgba(255,255,255,0.95)', marginTop: 2 },
 
   moodBanner: { borderRadius: 18, padding: 14, marginBottom: 16 },
-  moodWorried: { backgroundColor: '#FEF9C3', borderWidth: 1, borderColor: '#FBBF24' },
-  moodSad: { backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#FCA5A5' },
+  moodWorried: {
+    backgroundColor: '#FEF9C3',
+    borderWidth: 1,
+    borderColor: '#FBBF24',
+  },
+  moodSad: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
   moodText: {
     fontSize: 15,
     fontWeight: '600',
@@ -398,8 +511,18 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   questEmoji: { fontSize: 52 },
-  questKicker: { fontSize: 11, fontWeight: '800', color: T.accent, letterSpacing: 0.6 },
-  questTitle: { fontSize: 19, fontWeight: '800', color: T.foreground, marginTop: 2 },
+  questKicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: T.accent,
+    letterSpacing: 0.6,
+  },
+  questTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: T.foreground,
+    marginTop: 2,
+  },
   questSub: { fontSize: 14, color: T.muted, lineHeight: 19, marginTop: 2 },
   startPill: {
     alignSelf: 'flex-start',
@@ -434,7 +557,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 4,
   },
-  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  tileGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
   tileWrap: { width: '47%' },
   tile: {
     borderRadius: T.radius,
@@ -447,8 +575,18 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   tileIcon: { fontSize: 40, marginBottom: 6 },
-  tileLabel: { fontSize: 14, fontWeight: '800', color: '#fff', textAlign: 'center' },
-  tileDesc: { fontSize: 11, color: 'rgba(255,255,255,0.9)', textAlign: 'center', marginTop: 2 },
+  tileLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  tileDesc: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    marginTop: 2,
+  },
 
   cta: {
     flexDirection: 'row',

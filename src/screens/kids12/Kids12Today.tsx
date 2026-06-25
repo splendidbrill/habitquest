@@ -17,7 +17,10 @@ import { RecommendedMissions } from '../../components/RecommendedMissions';
 import { DailySpin, useDailySpin } from '../../components/DailySpin';
 import { ParentReactionBanner } from '../../components/ParentReactionBanner';
 import { useChild } from '../../context/ChildContext';
-import { loadFamilyProfile, type FamilyProfile } from '../../data/familyProfile';
+import {
+  loadFamilyProfile,
+  type FamilyProfile,
+} from '../../data/familyProfile';
 import {
   selectDailyMovementQuest,
   type MovementQuest,
@@ -38,24 +41,79 @@ type Tile = {
 };
 
 const MOVE_TILES: Tile[] = [
-  { icon: '🏃', label: 'Urban Runner', colors: KIDS12_GRADIENTS.runner, screen: 'Kids12UrbanRunner' },
-  { icon: '🎯', label: 'Reflex & Rhythm', colors: KIDS12_GRADIENTS.reflex, screen: 'Kids12ReflexRhythm' },
-  { icon: '⚡', label: 'Micro Workouts', colors: KIDS12_GRADIENTS.micro, screen: 'Kids12MicroWorkouts' },
-  { icon: '🔥', label: 'Movement', colors: KIDS12_GRADIENTS.movement, screen: 'Kids12Movement' },
+  {
+    icon: '🏃',
+    label: 'Urban Runner',
+    colors: KIDS12_GRADIENTS.runner,
+    screen: 'Kids12UrbanRunner',
+  },
+  {
+    icon: '🎯',
+    label: 'Reflex & Rhythm',
+    colors: KIDS12_GRADIENTS.reflex,
+    screen: 'Kids12ReflexRhythm',
+  },
+  {
+    icon: '⚡',
+    label: 'Micro Workouts',
+    colors: KIDS12_GRADIENTS.micro,
+    screen: 'Kids12MicroWorkouts',
+  },
+  {
+    icon: '🔥',
+    label: 'Movement',
+    colors: KIDS12_GRADIENTS.movement,
+    screen: 'Kids12Movement',
+  },
 ];
 
 const FOOD_TILES: Tile[] = [
-  { icon: '🔄', label: 'Food Swaps', colors: KIDS12_GRADIENTS.foodSwaps, screen: 'Kids12FoodSwaps' },
-  { icon: '🥑', label: 'Healthy Eating', colors: KIDS12_GRADIENTS.eating, screen: 'Kids12HealthyEating' },
+  {
+    icon: '🔄',
+    label: 'Food Swaps',
+    colors: KIDS12_GRADIENTS.foodSwaps,
+    screen: 'Kids12FoodSwaps',
+  },
+  {
+    icon: '🥑',
+    label: 'Healthy Eating',
+    colors: KIDS12_GRADIENTS.eating,
+    screen: 'Kids12HealthyEating',
+  },
 ];
 
 // Teen wellbeing content — surfaced as tiles instead of buried in a menu.
 const SPACE_TILES: Tile[] = [
-  { icon: '💭', label: 'Check In', colors: KIDS12_GRADIENTS.checkIn, screen: 'Kids12CheckIn' },
-  { icon: '📓', label: 'Private Journal', colors: KIDS12_GRADIENTS.reflection, screen: 'Kids12Reflection' },
-  { icon: '📈', label: 'Wellbeing Tracker', colors: KIDS12_GRADIENTS.wellbeing, screen: 'Kids12WellbeingTracker' },
-  { icon: '🗓️', label: 'Weekly Planner', colors: KIDS12_GRADIENTS.planner, screen: 'Kids12WeeklyPlanner' },
-  { icon: '🧭', label: 'Resources', colors: KIDS12_GRADIENTS.resources, screen: 'Kids12Resources' },
+  {
+    icon: '💭',
+    label: 'Check In',
+    colors: KIDS12_GRADIENTS.checkIn,
+    screen: 'Kids12CheckIn',
+  },
+  {
+    icon: '📓',
+    label: 'Private Journal',
+    colors: KIDS12_GRADIENTS.reflection,
+    screen: 'Kids12Reflection',
+  },
+  {
+    icon: '📈',
+    label: 'Wellbeing Tracker',
+    colors: KIDS12_GRADIENTS.wellbeing,
+    screen: 'Kids12WellbeingTracker',
+  },
+  {
+    icon: '🗓️',
+    label: 'Weekly Planner',
+    colors: KIDS12_GRADIENTS.planner,
+    screen: 'Kids12WeeklyPlanner',
+  },
+  {
+    icon: '🧭',
+    label: 'Resources',
+    colors: KIDS12_GRADIENTS.resources,
+    screen: 'Kids12Resources',
+  },
 ];
 
 export function Kids12Today() {
@@ -159,7 +217,10 @@ export function Kids12Today() {
           </View>
 
           {/* Identity card (epic, less cute) */}
-          <LinearGradient colors={KIDS12_GRADIENTS.identity} style={styles.identityCard}>
+          <LinearGradient
+            colors={KIDS12_GRADIENTS.identity}
+            style={styles.identityCard}
+          >
             <Text style={styles.identityEmoji}>⚡</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.identityTitle}>Level up your story</Text>
@@ -177,7 +238,10 @@ export function Kids12Today() {
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity activeOpacity={0.9} onPress={() => go('Kids12Movement')}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => go('Kids12Movement')}
+          >
             <View style={styles.questCard}>
               <Text style={styles.questEmoji}>{quest.emoji}</Text>
               <View style={{ flex: 1 }}>
@@ -186,7 +250,9 @@ export function Kids12Today() {
                   {quest.challenge}
                 </Text>
                 <View style={styles.questMetaRow}>
-                  <Text style={styles.questMeta}>⏱ {quest.durationMin} min</Text>
+                  <Text style={styles.questMeta}>
+                    ⏱ {quest.durationMin} min
+                  </Text>
                   <Text style={styles.questXp}>+{quest.xp} XP</Text>
                 </View>
               </View>
@@ -229,7 +295,11 @@ export function Kids12Today() {
             { icon: '🗺️', label: 'Map', screen: 'WorldMap' as const },
             { icon: '🔥', label: 'Moves', screen: 'Kids12Movement' as const },
             { icon: '💭', label: 'Mind', screen: 'Kids12CheckIn' as const },
-            { icon: '👤', label: 'Profile', screen: 'Kids12ProfileIdentity' as const },
+            {
+              icon: '👤',
+              label: 'Profile',
+              screen: 'Kids12ProfileIdentity' as const,
+            },
           ].map(item => (
             <TouchableOpacity
               key={item.label}
@@ -241,7 +311,9 @@ export function Kids12Today() {
               <View
                 style={[
                   styles.navIconWrap,
-                  item.label === 'Mind' && !checkedInToday && styles.navIconAlert,
+                  item.label === 'Mind' &&
+                    !checkedInToday &&
+                    styles.navIconAlert,
                 ]}
               >
                 <Text style={styles.navIcon}>{item.icon}</Text>
@@ -278,7 +350,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   hello: { fontSize: 20, fontWeight: '800', color: T.foreground },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   levelText: { fontSize: 13, fontWeight: '700', color: T.primary },
   pills: { gap: 6, alignItems: 'flex-end' },
   pill: {
@@ -363,11 +440,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 4,
   },
-  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  tileGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
   tileWrap: { width: '47%' },
   tile: { borderRadius: T.radius, padding: 18, alignItems: 'center' },
   tileIcon: { fontSize: 34, marginBottom: 8 },
-  tileLabel: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  tileLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
 
   cta: {
     flexDirection: 'row',

@@ -13,7 +13,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
 import { ArrowLeft } from 'lucide-react-native';
-import { loadFamilyProfile, type FamilyProfile } from '../../data/familyProfile';
+import {
+  loadFamilyProfile,
+  type FamilyProfile,
+} from '../../data/familyProfile';
 import {
   selectDailyMovementQuest,
   type MovementQuest,
@@ -89,7 +92,9 @@ export function Kids8DailyMission() {
 
             {quest.upgrade ? (
               <View style={styles.upgradeBox}>
-                <Text style={styles.upgradeText}>⤴ Level up: {quest.upgrade}</Text>
+                <Text style={styles.upgradeText}>
+                  ⤴ Level up: {quest.upgrade}
+                </Text>
               </View>
             ) : null}
 

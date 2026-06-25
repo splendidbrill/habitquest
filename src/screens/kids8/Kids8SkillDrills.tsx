@@ -13,7 +13,7 @@ const { width, height } = Dimensions.get('window');
 
 const drills = [
   { id: 'reaction', name: 'Reaction Time', description: 'Tap the target as fast as you can', emoji: '⚡', colors: ['#ca8a04', '#ea580c'] as [string,string], sportRef: 'Goalkeepers train reflexes like this' },
-  { id: 'agility', name: 'Agility Drill', description: 'Follow the direction shown', emoji: '↔️', colors: ['#2563eb', '#0891b2'] as [string,string], sportRef: 'This is how sprinters warm up' },
+  { id: 'agility', name: 'Agility Drill', description: 'Follow the direction shown', emoji: '↔️', colors: ['#8B5CF6', '#EC4899'] as [string,string], sportRef: 'This is how sprinters warm up' },
   { id: 'balance', name: 'Balance Test', description: 'Keep the bar centered', emoji: '⚖️', colors: ['#16a34a', '#059669'] as [string,string], sportRef: 'Surfers and skaters use balance drills' },
   { id: 'shooting', name: 'Target Practice', description: 'Hit the moving targets', emoji: '🎯', colors: ['#ef4444', '#f43f5e'] as [string,string], sportRef: 'Strikers practice accuracy like this' },
 ];
@@ -131,7 +131,7 @@ export function Kids8SkillDrills() {
 
   if (gameState === 'menu') {
     return (
-      <LinearGradient colors={['#0f172a', '#1e1b4b', '#0f172a']} style={styles.container}>
+      <LinearGradient colors={['#2D1B4E', '#1e1b4b', '#2D1B4E']} style={styles.container}>
         <SafeAreaView style={styles.safe}>
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.header}>
@@ -142,7 +142,7 @@ export function Kids8SkillDrills() {
               <View style={{ width: 44 }} />
             </View>
 
-            <LinearGradient colors={['#2563eb', '#0891b2']} style={styles.infoCard}>
+            <LinearGradient colors={['#8B5CF6', '#EC4899']} style={styles.infoCard}>
               <Text style={{ fontSize: 44, marginRight: 12 }}>⚡</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.infoTitle}>Train Your Skills</Text>
@@ -171,7 +171,7 @@ export function Kids8SkillDrills() {
 
   if (gameState === 'complete') {
     return (
-      <LinearGradient colors={['#0f172a', '#064e3b', '#0f172a']} style={styles.container}>
+      <LinearGradient colors={['#2D1B4E', '#064e3b', '#2D1B4E']} style={styles.container}>
         <SafeAreaView style={styles.safe}>
           <View style={styles.completeContent}>
             <LinearGradient colors={['#16a34a', '#059669']} style={styles.completeCard}>
@@ -202,7 +202,7 @@ export function Kids8SkillDrills() {
   const drill = drills.find(d => d.id === selectedDrill);
 
   return (
-    <LinearGradient colors={drill?.colors || ['#1e293b', '#334155']} style={{ flex: 1 }}>
+    <LinearGradient colors={drill?.colors || ['#3B0764', '#4C1D95']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.gameHeader}>
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '800', color: '#fff' },
   infoCard: { borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   infoTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  infoText: { fontSize: 12, color: '#bfdbfe', lineHeight: 17 },
+  infoText: { fontSize: 12, color: '#DDD6FE', lineHeight: 17 },
   drillCard: { borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center' },
   drillName: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
   drillDesc: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 6 },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   completeStats: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 20, alignItems: 'center', width: '100%', marginBottom: 16 },
   completeScoreLabel: { fontSize: 11, color: '#fde68a', fontWeight: '800', marginBottom: 4 },
   completeScore: { fontSize: 48, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  completeXpLabel: { fontSize: 11, color: '#93c5fd', fontWeight: '800', marginBottom: 4 },
+  completeXpLabel: { fontSize: 11, color: '#C4B5FD', fontWeight: '800', marginBottom: 4 },
   completeXp: { fontSize: 22, fontWeight: '800', color: '#fff' },
   completeBtns: { flexDirection: 'row', gap: 10, width: '100%' },
   backDrillBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },

@@ -44,6 +44,7 @@ import {
 import { type DayPlan, FALLBACK_PLAN } from '../services/weeklyPlanStore';
 import {
   getHealthierInfo,
+  getRecipe,
   NUTRITION_PILLARS,
   NUTRITION_DOT,
 } from '../services/healthierMeal';
@@ -156,11 +157,15 @@ export function WeeklyPlan() {
   const [whyOpen, setWhyOpen] = useState<Record<string, boolean>>({});
   // Portion-guide expand state, keyed by day name.
   const [portionsOpen, setPortionsOpen] = useState<Record<string, boolean>>({});
+  // "View recipe" expand state, keyed by day name.
+  const [recipeOpen, setRecipeOpen] = useState<Record<string, boolean>>({});
 
   const toggleWhy = (key: string) =>
     setWhyOpen(prev => ({ ...prev, [key]: !prev[key] }));
   const togglePortions = (day: string) =>
     setPortionsOpen(prev => ({ ...prev, [day]: !prev[day] }));
+  const toggleRecipe = (day: string) =>
+    setRecipeOpen(prev => ({ ...prev, [day]: !prev[day] }));
 
   const submitMealReaction = async (day: DayPlan, reaction: MealReaction) => {
     const key = `${day.day}:meal`;
@@ -247,7 +252,7 @@ export function WeeklyPlan() {
           const picks = selectMeals(model, p, 7);
           if (picks.length) {
             candidateBlock =
-              `\n\nPreferred meal options (already balanced 70% familiar / 20% adjacent / 10% new — build the week around these, keeping the leftovers logic):\n` +
+              `\n\nPreferred meal options (already balanced 70% familiar / 20% adjacent / 10% new — build the week around these, keeping the leftovers logic). IMPORTANT: copy these meal names EXACTLY into the "name" field so the app can show each meal's full recipe and nutrition:\n` +
               picks
                 .map(
                   pk =>
@@ -471,7 +476,11 @@ Return ONLY valid JSON array with exactly 7 items:
           name: day.meal?.name ?? '',
           ingredients: day.meal?.ingredients,
         });
+        // Real recipe (ingredients + method + age servings) when the planned
+        // meal resolves to one of the 100 spreadsheet meals.
+        const recipe = getRecipe(day.meal?.name ?? '');
         const showPortions = portionsOpen[day.day];
+        const showRecipe = recipeOpen[day.day];
 
         return (
           <View key={day.day} style={[s.dayCard, isToday && s.dayCardToday]}>
@@ -691,6 +700,63 @@ Return ONLY valid JSON array with exactly 7 items:
                           the portion to their size.
                         </Text>
                       </View>
+                    )}
+
+                    {/* Full recipe — real ingredients + method (DB meals only) */}
+                    {recipe && (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => toggleRecipe(day.day)}
+                          style={s.portionToggle}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        >
+                          <Text style={s.portionToggleText}>
+                            🍳 View recipe
+                            {recipe.cookTimeMin
+                              ? `  ·  ${recipe.cookTimeMin} min`
+                              : ''}
+                          </Text>
+                          {showRecipe ? (
+                            <ChevronUp size={14} color="#15803d" />
+                          ) : (
+                            <ChevronDown size={14} color="#15803d" />
+                          )}
+                        </TouchableOpacity>
+
+                        {showRecipe && (
+                          <View style={s.recipeBody}>
+                            <Text style={s.recipeHeading}>Ingredients</Text>
+                            {recipe.ingredients.map((ing, ii) => (
+                              <Text key={ii} style={s.recipeIngredient}>
+                                • {ing}
+                              </Text>
+                            ))}
+
+                            <Text style={s.recipeHeading}>Method</Text>
+                            {recipe.method.map((step, si) => (
+                              <Text key={si} style={s.recipeStep}>
+                                {si + 1}. {step}
+                              </Text>
+                            ))}
+
+                            <Text style={s.recipeHeading}>
+                              Serving by age
+                            </Text>
+                            <Text style={s.recipeServe}>
+                              🧒 6–8: {recipe.servings.age6to8}
+                            </Text>
+                            <Text style={s.recipeServe}>
+                              🧒 8–10: {recipe.servings.age8to10}
+                            </Text>
+                            <Text style={s.recipeServe}>
+                              🧒 10–12: {recipe.servings.age10to12}
+                            </Text>
+                            <Text style={s.recipeServe}>
+                              🧑 Adult: {recipe.servings.adult}
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     )}
                   </View>
                 </LinearGradient>
@@ -1057,6 +1123,17 @@ const s = StyleSheet.create({
     borderTopColor: '#dcfce7',
   },
   portionToggleText: { fontSize: 12, fontWeight: '800', color: '#15803d' },
+  recipeBody: { marginTop: 8, gap: 3 },
+  recipeHeading: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#15803d',
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  recipeIngredient: { fontSize: 12, color: '#374151', lineHeight: 18 },
+  recipeStep: { fontSize: 12, color: '#374151', lineHeight: 18, marginBottom: 2 },
+  recipeServe: { fontSize: 11, color: '#4b5563', lineHeight: 16 },
   portionTable: { marginTop: 8, gap: 6 },
   portionHeaderRow: { flexDirection: 'row', gap: 4 },
   portionRow: {

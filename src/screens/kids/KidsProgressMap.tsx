@@ -18,7 +18,7 @@ const worlds = [
   { id: 'garden', name: 'Garden World', emoji: '🌻', colors: ['#4ade80', '#10b981'] as [string, string], requiredStars: 0 },
   { id: 'jungle', name: 'Jungle World', emoji: '🌴', colors: ['#fb923c', '#fbbf24'] as [string, string], requiredStars: 10 },
   { id: 'hero', name: 'Hero Training Camp', emoji: '🦸', colors: ['#c084fc', '#ec4899'] as [string, string], requiredStars: 25 },
-  { id: 'mountain', name: 'Mountain Peak', emoji: '⛰️', colors: ['#60a5fa', '#06b6d4'] as [string, string], requiredStars: 50 },
+  { id: 'mountain', name: 'Mountain Peak', emoji: '⛰️', colors: ['#A78BFA', '#06b6d4'] as [string, string], requiredStars: 50 },
   { id: 'space', name: 'Space Station', emoji: '🚀', colors: ['#818cf8', '#c084fc'] as [string, string], requiredStars: 100 },
 ];
 
@@ -55,7 +55,7 @@ export function KidsProgressMap() {
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statEmoji}>🎯</Text>
-              <Text style={[styles.statNum, { color: '#2563eb' }]}>{adventures}</Text>
+              <Text style={[styles.statNum, { color: '#8B5CF6' }]}>{adventures}</Text>
               <Text style={styles.statLabel}>Adventures</Text>
             </View>
           </View>

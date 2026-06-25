@@ -68,7 +68,13 @@ export function Kids8SuccessCelebration() {
       }
       // Persist to Supabase so the streak AND the parent Progress tab update.
       if (activeChild?.id) {
-        await recordMissionComplete(activeChild.id);
+        const unlock = await storage.getItem('kids8LastUnlock');
+        await recordMissionComplete(
+          activeChild.id,
+          'movement',
+          5,
+          unlock ?? undefined,
+        );
         await refreshChild();
       }
     };

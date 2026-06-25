@@ -41,6 +41,7 @@ import { ParentHome } from '../screens/ParentHome';
 import { ParentDashboard } from '../screens/ParentDashboard';
 import { GroceryList } from '../screens/GroceryList';
 import { PantryMode } from '../screens/PantryMode';
+import { RealWorldLog } from '../screens/RealWorldLog';
 import { HealthySwaps } from '../screens/HealthySwaps';
 import { PhotoRewards } from '../screens/PhotoRewards';
 import { HandlingResistance } from '../screens/HandlingResistance';
@@ -152,6 +153,7 @@ export type RootStackParamList = {
   // Parent detail screens
   GroceryList: undefined;
   PantryMode: undefined;
+  RealWorldLog: undefined;
   HealthySwaps: undefined;
   PhotoRewards: undefined;
   HandlingResistance: undefined;
@@ -392,6 +394,7 @@ export function AppNavigator() {
       {/* Parent detail screens */}
       <RootStack.Screen name="GroceryList" component={GroceryList} />
       <RootStack.Screen name="PantryMode" component={PantryMode} />
+      <RootStack.Screen name="RealWorldLog" component={RealWorldLog} />
       <RootStack.Screen name="HealthySwaps" component={HealthySwaps} />
       <RootStack.Screen name="PhotoRewards" component={PhotoRewards} />
       <RootStack.Screen

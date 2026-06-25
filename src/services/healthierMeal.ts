@@ -18,7 +18,12 @@
 // calories, no weight-loss language (doc guardrail).
 // ============================================================
 
-import { mealLibrary, type LibraryMeal } from '../data/mealLibrary';
+import {
+  mealDatabase,
+  mealLibrary,
+  type LibraryMeal,
+  type DatabaseMeal,
+} from '../data/mealDatabase';
 
 export type NutritionLevel = 'green' | 'amber';
 
@@ -271,24 +276,121 @@ function derivePortions(input: HealthierInput, text: string): PortionRow[] {
   return rows;
 }
 
+// ─── Database match (real authored content) ─────────────────────────────────
+
+// Normalise a freeform meal name so an AI-generated plan name still resolves to
+// the spreadsheet record: lower-case, drop parenthetical qualifiers like
+// "(Lighter Version)" / "(No-Cook)", collapse punctuation/whitespace.
+function normaliseName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ') // drop "(lighter version)" etc.
+    .replace(/[^a-z0-9 ]+/g, ' ') // punctuation → space
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Resolve a freeform meal name to its DatabaseMeal, if we have one. */
+export function findDatabaseMeal(name: string): DatabaseMeal | undefined {
+  const key = normaliseName(name);
+  if (!key) return undefined;
+  // 1 — exact normalised match.
+  const exact = mealDatabase.find(m => normaliseName(m.name) === key);
+  if (exact) return exact;
+  // 2 — tolerant contains either direction (handles "Healthier X" / extra words).
+  return mealDatabase.find(m => {
+    const mk = normaliseName(m.name);
+    return mk.includes(key) || key.includes(mk);
+  });
+}
+
+// Real nutrition figures → the icon-only 🟢/🟡 snapshot. Numbers are NEVER
+// surfaced (guardrail); they only decide which dot shows. Veg is read from the
+// ingredient text since the sheet has no veg-grams column.
+function nutritionFromMeal(m: DatabaseMeal): NutritionSnapshot {
+  const text = m.ingredients.join(' ').toLowerCase();
+  return {
+    protein: m.nutrition.protein >= 12 ? 'green' : 'amber',
+    veg: matchesAny(text, VEG_WORDS) ? 'green' : 'amber',
+    fibre: m.nutrition.fibre >= 5 ? 'green' : 'amber',
+    fats: m.nutrition.satFat <= 5 ? 'green' : 'amber',
+  };
+}
+
+// Authored "small wins" = the dietitian's healthy-swap + further-swap, topped
+// up from the gentle universals so the card always shows 2–3.
+function smallWinsFromMeal(m: DatabaseMeal): string[] {
+  const wins = [m.healthySwap, m.furtherSwap].filter(Boolean) as string[];
+  for (const w of UNIVERSAL_WINS) {
+    if (wins.length >= 3) break;
+    wins.push(w);
+  }
+  return wins.slice(0, 3);
+}
+
+// ─── Recipe (ingredients + method + age servings) ───────────────────────────
+
+export interface Recipe {
+  name: string;
+  ingredients: string[];
+  method: string[];
+  servings: { age6to8: string; age8to10: string; age10to12: string; adult: string };
+  cookTimeMin: number;
+  occasion: string;
+}
+
+/** Full recipe for a meal name, or null if it isn't in the database. */
+export function getRecipe(name: string): Recipe | null {
+  const m = findDatabaseMeal(name);
+  if (!m) return null;
+  return {
+    name: m.name,
+    ingredients: m.ingredients,
+    method: m.method,
+    servings: {
+      age6to8: m.portions.age6to8,
+      age8to10: m.portions.age8to10,
+      age10to12: m.portions.age10to12,
+      adult: m.portions.adult,
+    },
+    cookTimeMin: m.cookTimeMin,
+    occasion: m.occasion,
+  };
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /** Recover the library record for a freeform meal name, if we have one. */
 function libraryMatch(name: string): LibraryMeal | undefined {
-  const key = name.trim().toLowerCase();
-  return mealLibrary.find(m => m.name.toLowerCase() === key);
+  return findDatabaseMeal(name) ?? mealLibrary.find(m => m.name === name);
 }
 
 /**
  * All parent meal-details content for a meal. Accepts either a freeform name
- * (recovered against the library) or a fuller HealthierInput. Always returns a
- * complete, non-empty result so the UI never has to handle a missing state.
+ * (recovered against the database) or a fuller HealthierInput. When the meal is
+ * one of the 100 spreadsheet meals it returns the dietitian's AUTHORED content;
+ * otherwise it falls back to the deterministic heuristic so the UI never has to
+ * handle a missing state.
  */
 export function getHealthierInfo(meal: string | HealthierInput): HealthierInfo {
   const base: HealthierInput =
     typeof meal === 'string' ? { name: meal } : { ...meal };
 
-  // Enrich a bare name from the library where possible.
+  // Prefer the real authored record when the name resolves to the database.
+  const db = findDatabaseMeal(base.name);
+  if (db) {
+    return {
+      whyHealthier: db.whyHealthier,
+      smallWins: smallWinsFromMeal(db),
+      nutrition: nutritionFromMeal(db),
+      portions: derivePortions(
+        { name: db.name, ingredients: db.ingredients, vegetarian: db.vegetarian },
+        haystack({ name: db.name, ingredients: db.ingredients }),
+      ),
+    };
+  }
+
+  // Enrich a bare name from the library where possible (heuristic fallback).
   if (!base.tags || !base.ingredients) {
     const match = libraryMatch(base.name);
     if (match) {
