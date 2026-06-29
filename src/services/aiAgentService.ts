@@ -11,7 +11,6 @@ export type ParentDigest = {
   alerts: string[];
 };
 
-
 // ─── Gather child context from Supabase ──────────────────────────────────────
 async function buildContext(childId: string, ageGroup: AgeGroup) {
   const cutoff = new Date();
@@ -36,7 +35,9 @@ async function buildContext(childId: string, ageGroup: AgeGroup) {
           .select('mood_level, energy_level')
           .eq('child_id', childId)
           .gte('logged_at', iso)
-      : Promise.resolve({ data: [] as { mood_level: number; energy_level: number }[] }),
+      : Promise.resolve({
+          data: [] as { mood_level: number; energy_level: number }[],
+        }),
     supabase
       .from('pillar_scores')
       .select('nutrition_score, movement_score, sleep_score, confidence_score')
@@ -49,25 +50,51 @@ async function buildContext(childId: string, ageGroup: AgeGroup) {
   const recentIds = new Set((missionsRes.data ?? []).map(m => m.mission_id));
 
   const food = foodRes.data ?? [];
-  const liked   = [...new Set(food.filter(f => f.action === 'liked' || f.action === 'repeated').map(f => f.food_item))].slice(0, 5);
-  const skipped = [...new Set(food.filter(f => f.action === 'skipped').map(f => f.food_item))].slice(0, 5);
+  const liked = [
+    ...new Set(
+      food
+        .filter(f => f.action === 'liked' || f.action === 'repeated')
+        .map(f => f.food_item),
+    ),
+  ].slice(0, 5);
+  const skipped = [
+    ...new Set(food.filter(f => f.action === 'skipped').map(f => f.food_item)),
+  ].slice(0, 5);
 
   // 10-12: summarise mood as aggregated trend — never expose raw entries to parent
   let moodSummary = '';
-  const moods = (moodRes.data ?? []) as { mood_level: number; energy_level: number }[];
+  const moods = (moodRes.data ?? []) as {
+    mood_level: number;
+    energy_level: number;
+  }[];
   if (moods.length > 0) {
-    const avgM = (moods.reduce((s, m) => s + m.mood_level, 0) / moods.length).toFixed(1);
-    const avgE = (moods.reduce((s, m) => s + m.energy_level, 0) / moods.length).toFixed(1);
+    const avgM = (
+      moods.reduce((s, m) => s + m.mood_level, 0) / moods.length
+    ).toFixed(1);
+    const avgE = (
+      moods.reduce((s, m) => s + m.energy_level, 0) / moods.length
+    ).toFixed(1);
     moodSummary = `avg mood ${avgM}/5, avg energy ${avgE}/5 (${moods.length} check-ins)`;
   }
 
-  const s = scoresRes.data ?? { nutrition_score: 50, movement_score: 50, sleep_score: 50, confidence_score: 50 };
-  const pillarMap: Record<Pillar, number> = {
-    nutrition: s.nutrition_score, movement: s.movement_score,
-    sleep: s.sleep_score, confidence: s.confidence_score,
+  const s = scoresRes.data ?? {
+    nutrition_score: 50,
+    movement_score: 50,
+    sleep_score: 50,
+    confidence_score: 50,
   };
-  const weakPillar = (Object.entries(pillarMap).sort(([, a], [, b]) => a - b)[0][0]) as Pillar;
-  const focusPillar = getCurrentFocusPillar(new Date().toISOString().split('T')[0]);
+  const pillarMap: Record<Pillar, number> = {
+    nutrition: s.nutrition_score,
+    movement: s.movement_score,
+    sleep: s.sleep_score,
+    confidence: s.confidence_score,
+  };
+  const weakPillar = Object.entries(pillarMap).sort(
+    ([, a], [, b]) => a - b,
+  )[0][0] as Pillar;
+  const focusPillar = getCurrentFocusPillar(
+    new Date().toISOString().split('T')[0],
+  );
 
   return {
     recentIds,
@@ -108,22 +135,32 @@ export async function getAIRecommendations(
   childId: string,
   ageGroup: AgeGroup,
 ): Promise<Recommendation[] | null> {
-  if (!DEEPSEEK_AZURE_ENDPOINT || !DEEPSEEK_AZURE_KEY) return null;
-
+  // No client-side key check — the keys live server-side in the ai-proxy edge
+  // function. If the AI is unreachable, callProxy() returns null and the caller
+  // falls back to the local rule-based recommender. (Referencing client-side
+  // env vars here previously threw a ReferenceError and broke that fallback.)
   try {
     const ctx = await buildContext(childId, ageGroup);
-    const pool = catalog.filter(m => m.ageGroup === ageGroup && !ctx.recentIds.has(m.id));
+    const pool = catalog.filter(
+      m => m.ageGroup === ageGroup && !ctx.recentIds.has(m.id),
+    );
     if (pool.length < 3) return null;
 
     const catalogLines = pool
-      .map(m => `${m.id}: "${m.title}" [${m.pillar}, ${m.difficulty}, ${m.durationMin}min, tags:${m.tags.join(',')}]`)
+      .map(
+        m =>
+          `${m.id}: "${m.title}" [${m.pillar}, ${m.difficulty}, ${
+            m.durationMin
+          }min, tags:${m.tags.join(',')}]`,
+      )
       .join('\n');
 
-    const tone = ageGroup === '6-8'
-      ? 'fun and simple, max 10 words'
-      : ageGroup === '8-10'
-      ? 'sporty and motivating, max 12 words'
-      : 'relatable, non-preachy, max 12 words';
+    const tone =
+      ageGroup === '6-8'
+        ? 'fun and simple, max 10 words'
+        : ageGroup === '8-10'
+        ? 'sporty and motivating, max 12 words'
+        : 'relatable, non-preachy, max 12 words';
 
     const prompt = `You are a personalised health coach for a child aged ${ageGroup}. Pick the 3 best missions. Reasons: ${tone}.
 
@@ -149,7 +186,12 @@ Respond ONLY with JSON (no extra text):
     const results: Recommendation[] = [];
     for (const pick of parsed.picks.slice(0, 3)) {
       const mission = catalog.find(m => m.id === pick.id);
-      if (mission) results.push({ ...mission, score: 100, reason: pick.reason || 'Good for you today' });
+      if (mission)
+        results.push({
+          ...mission,
+          score: 100,
+          reason: pick.reason || 'Good for you today',
+        });
     }
 
     return results.length === 3 ? results : null;
@@ -164,18 +206,20 @@ export async function getParentDigest(
   childName: string,
   ageGroup: AgeGroup,
 ): Promise<ParentDigest | null> {
-  if (!GPT41_AZURE_ENDPOINT || !GPT41_AZURE_KEY) return null;
-
+  // Keys live server-side; callProxy() returns null if the AI is unreachable.
   try {
     const ctx = await buildContext(childId, ageGroup);
 
-    const missionList = ctx.completedThisWeek.map(m => m.mission_title).join(', ') || 'none this week';
+    const missionList =
+      ctx.completedThisWeek.map(m => m.mission_title).join(', ') ||
+      'none this week';
     const scores = ctx.pillarMap;
     const pillarsText = `Nutrition:${scores.nutrition} Movement:${scores.movement} Sleep:${scores.sleep} Confidence:${scores.confidence}`;
 
-    const privacyNote = ageGroup === '10-12'
-      ? '\nPRIVACY: Describe mood/energy as patterns only (e.g. "lower energy this week"). Never quote specific numbers or raw entries.'
-      : '';
+    const privacyNote =
+      ageGroup === '10-12'
+        ? '\nPRIVACY: Describe mood/energy as patterns only (e.g. "lower energy this week"). Never quote specific numbers or raw entries.'
+        : '';
 
     const prompt = `You are a warm family health coach. Write a brief weekly digest for the parent of ${childName} (age ${ageGroup}).
 
@@ -205,10 +249,10 @@ Be warm, specific, constructive. Empty alerts array if no concerns.`;
     if (!parsed?.summary) return null;
 
     return {
-      summary:    parsed.summary,
-      patterns:   (parsed.patterns ?? []).slice(0, 3),
+      summary: parsed.summary,
+      patterns: (parsed.patterns ?? []).slice(0, 3),
       suggestion: parsed.suggestion ?? '',
-      alerts:     (parsed.alerts ?? []).filter(Boolean),
+      alerts: (parsed.alerts ?? []).filter(Boolean),
     };
   } catch {
     return null;

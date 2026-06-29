@@ -334,7 +334,12 @@ export interface Recipe {
   name: string;
   ingredients: string[];
   method: string[];
-  servings: { age6to8: string; age8to10: string; age10to12: string; adult: string };
+  servings: {
+    age6to8: string;
+    age8to10: string;
+    age10to12: string;
+    adult: string;
+  };
   cookTimeMin: number;
   occasion: string;
 }
@@ -384,7 +389,11 @@ export function getHealthierInfo(meal: string | HealthierInput): HealthierInfo {
       smallWins: smallWinsFromMeal(db),
       nutrition: nutritionFromMeal(db),
       portions: derivePortions(
-        { name: db.name, ingredients: db.ingredients, vegetarian: db.vegetarian },
+        {
+          name: db.name,
+          ingredients: db.ingredients,
+          vegetarian: db.vegetarian,
+        },
         haystack({ name: db.name, ingredients: db.ingredients }),
       ),
     };

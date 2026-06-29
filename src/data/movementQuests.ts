@@ -79,7 +79,6 @@ export const MOVEMENT_INSPIRATION: MovementInspiration[] = [
 // The 100 real activities, generated from the Activity Database spreadsheet.
 export const movementQuests: MovementQuest[] = activityQuests;
 
-
 // ─── Selector ─────────────────────────────────────────────────────────────────
 
 export interface MovementSelectOpts {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,6 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
-import { supabase } from '../lib/supabase';
 import { storage } from '../utils/storage';
 import { loadFamilyProfile, type FamilyProfile } from '../data/familyProfile';
 import { useChild } from '../context/ChildContext';
@@ -33,7 +32,11 @@ import {
   computePreferenceModel,
   type PreferenceModel,
 } from '../services/preferenceEngine';
-import { selectMeals } from '../services/mealEngine';
+import {
+  buildLocalPlan,
+  emptyPreferenceModel,
+} from '../services/localPlanBuilder';
+import { enhancePlanWithAI } from '../services/planEnhancer';
 import { buildMealWhy, buildActivityWhy } from '../services/transparency';
 import {
   recordMealFeedback,
@@ -95,28 +98,6 @@ const PILLAR_COLORS: Record<string, string> = {
   confidence: '#ec4899',
 };
 
-function profileToPrompt(p: FamilyProfile): string {
-  const parts: string[] = [];
-  if (p.cultures.length)
-    parts.push(`Cultural background: ${p.cultures.join(', ')}`);
-  if (p.foodGroups.length)
-    parts.push(`Food groups eaten: ${p.foodGroups.join(', ')}`);
-  if (p.prepTime) parts.push(`Meal prep time: ${p.prepTime}`);
-  if (p.budget) parts.push(`Weekly food budget: ${p.budget}`);
-  if (p.dietary.length)
-    parts.push(`Dietary requirements: ${p.dietary.join(', ')}`);
-  parts.push(`Child activity level: ${p.activityLevel}`);
-  if (p.spaces.length) parts.push(`Activity spaces: ${p.spaces.join(', ')}`);
-  if (p.equipment.length)
-    parts.push(`Equipment available: ${p.equipment.join(', ')}`);
-  if (p.childAge !== null) parts.push(`Child age: ${p.childAge}`);
-  if (p.postcode)
-    parts.push(
-      `Postcode area: ${p.postcode} (suggest local outdoor/park ideas where relevant)`,
-    );
-  return parts.join('. ');
-}
-
 // Phase 7: attach the deterministic "Why am I seeing this?" reasons to each
 // day's meal/activity, citing real model + profile values (never fabricated).
 function enrichPlanWhy(
@@ -159,6 +140,17 @@ export function WeeklyPlan() {
   const [portionsOpen, setPortionsOpen] = useState<Record<string, boolean>>({});
   // "View recipe" expand state, keyed by day name.
   const [recipeOpen, setRecipeOpen] = useState<Record<string, boolean>>({});
+  // True once the optional AI layer has fine-tuned the deterministic plan.
+  const [aiEnhanced, setAiEnhanced] = useState(false);
+
+  // Guards the background AI upgrade against setting state after unmount.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const toggleWhy = (key: string) =>
     setWhyOpen(prev => ({ ...prev, [key]: !prev[key] }));
@@ -229,102 +221,61 @@ export function WeeklyPlan() {
   const generatePlan = async () => {
     setLoading(true);
     const p = await loadFamilyProfile();
-    const profile = p ? profileToPrompt(p) : '';
-    setHasProfile(!!profile);
+    setHasProfile(!!p);
 
-    if (!profile || !p) {
+    if (!p) {
+      // No onboarding profile yet — show the generic sample week (the
+      // "complete your profile" banner is rendered above).
       setPlan(FALLBACK_PLAN);
       setLoading(false);
       return;
     }
 
-    // Phase 5: bias the plan toward the family's preference model using the
-    // 70% familiar / 20% adjacent / 10% new meal selection. The model is also
-    // reused for Phase 7 transparency below. Falls back to the plain profile
-    // prompt when there is no child or no learned signal yet.
-    let candidateBlock = '';
-    let model: PreferenceModel | null = null;
+    // Personalise from the family's preference model when a child has signal;
+    // otherwise an empty model (buildLocalPlan seeds it from onboarding
+    // cultures so the first plan still reflects what they told us).
+    let model = emptyPreferenceModel();
     const childId = activeChild?.id;
     if (childId) {
       try {
         model = await computePreferenceModel(childId);
-        if (model.hasSignal) {
-          const picks = selectMeals(model, p, 7);
-          if (picks.length) {
-            candidateBlock =
-              `\n\nPreferred meal options (already balanced 70% familiar / 20% adjacent / 10% new — build the week around these, keeping the leftovers logic). IMPORTANT: copy these meal names EXACTLY into the "name" field so the app can show each meal's full recipe and nutrition:\n` +
-              picks
-                .map(
-                  pk =>
-                    `- ${pk.meal.name} (${pk.meal.cuisine}, ${
-                      pk.bucket
-                    }): ${pk.why.join('; ')}`,
-                )
-                .join('\n');
-          }
-        }
       } catch {
-        // best-effort personalisation; fall back to the profile-only prompt
+        // best-effort; fall back to the empty model
       }
     }
 
-    // Phase 7: enrich a parsed plan with deterministic why + AI rationale,
-    // then cache. Uses the computed model when available, else an empty one.
-    const enrich = (days: DayPlan[]): DayPlan[] =>
-      enrichPlanWhy(
-        days,
-        model ?? {
-          cuisineScores: {},
-          activityScores: {},
-          tagScores: {},
-          topCuisines: [],
-          topActivities: [],
-          timePatterns: { weekday: null, weekend: null, hasTimeSignal: false },
-          hasSignal: false,
-        },
-        p,
-      );
-
-    const prompt = `You are a family nutrition and wellbeing coach. Create a personalised 7-day meal and activity plan.
-
-Family profile: ${profile}${candidateBlock}
-
-Rules:
-- Tuesday and Thursday dinners should use leftovers from Monday/Wednesday
-- Activities framed as play/missions, NOT "exercise" — children should want to do them
-- Meals must respect budget, time, dietary requirements, and cultural background (keep them realistic for the stated budget, but do NOT show a price)
-- Activity pillar: one of movement, nutrition, confidence, sleep
-- For each meal also add a short "whyHealthier" (how it beats a typical convenience version) and a "familyTakeaway" (one reusable habit) — keep each under 12 words
-
-Return ONLY valid JSON array with exactly 7 items:
-[{"day":"Monday","meal":{"name":"...","reason":"...","time":"X min","ingredients":["..."],"whyHealthier":"...","familyTakeaway":"..."},"activity":{"name":"...","description":"...","duration":"X min","pillar":"movement"}},...]`;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-proxy', {
-        body: { type: 'recommendations', prompt, maxTokens: 1600 },
-      });
-
-      if (!error && data?.text) {
-        const match = data.text.match(/\[[\s\S]*\]/);
-        if (match) {
-          const parsed = JSON.parse(match[0]) as DayPlan[];
-          if (Array.isArray(parsed) && parsed.length === 7) {
-            const enriched = enrich(parsed);
-            setPlan(enriched);
-            await storage.setItem('weeklyPlan', JSON.stringify(enriched));
-            await storage.setItem(
-              'weeklyPlanDate',
-              new Date().toISOString().split('T')[0],
-            );
-            setLoading(false);
-            return;
-          }
-        }
-      }
-    } catch {}
-
-    setPlan(enrich(FALLBACK_PLAN));
+    // Deterministic, offline, sheet-driven plan — no network dependency, so it
+    // is always personalised and always resolves to real recipes (previously
+    // this relied on the Supabase `ai-proxy` call and fell back to a generic
+    // week whenever that was unreachable). The day-based seed rotates the picks
+    // each day so "Generate new plan" produces a fresh week.
+    const weekSeed = Math.floor(Date.now() / 86_400_000);
+    const base = buildLocalPlan(p, model, weekSeed);
+    const enriched = enrichPlanWhy(base, model, p);
+    setAiEnhanced(false);
+    setPlan(enriched);
+    await storage.setItem('weeklyPlan', JSON.stringify(enriched));
+    await storage.setItem(
+      'weeklyPlanDate',
+      new Date().toISOString().split('T')[0],
+    );
     setLoading(false);
+
+    // Optional AI upgrade — runs AFTER the working plan is already on screen.
+    // It can only re-order + re-word the same meals (see planEnhancer.ts); any
+    // failure leaves the deterministic plan exactly as-is. Never awaited so the
+    // UI is never blocked on the network.
+    void enhancePlanWithAI(base, p)
+      .then(improved => {
+        if (!improved || !mountedRef.current) return;
+        const upgraded = enrichPlanWhy(improved, model, p);
+        setPlan(upgraded);
+        setAiEnhanced(true);
+        void storage.setItem('weeklyPlan', JSON.stringify(upgraded));
+      })
+      .catch(() => {
+        /* keep the deterministic plan */
+      });
   };
 
   const handleRefresh = () => {
@@ -367,9 +318,11 @@ Return ONLY valid JSON array with exactly 7 items:
         <View>
           <Text style={s.title}>This week</Text>
           <Text style={s.subtitle}>
-            {hasProfile
-              ? 'Personalised for your family'
-              : 'Complete onboarding for personalised plans'}
+            {!hasProfile
+              ? 'Complete onboarding for personalised plans'
+              : aiEnhanced
+              ? '✨ Fine-tuned for your family'
+              : 'Personalised for your family'}
           </Text>
         </View>
         <TouchableOpacity onPress={handleRefresh} style={s.refreshBtn}>
@@ -739,9 +692,7 @@ Return ONLY valid JSON array with exactly 7 items:
                               </Text>
                             ))}
 
-                            <Text style={s.recipeHeading}>
-                              Serving by age
-                            </Text>
+                            <Text style={s.recipeHeading}>Serving by age</Text>
                             <Text style={s.recipeServe}>
                               🧒 6–8: {recipe.servings.age6to8}
                             </Text>
@@ -1132,7 +1083,12 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   recipeIngredient: { fontSize: 12, color: '#374151', lineHeight: 18 },
-  recipeStep: { fontSize: 12, color: '#374151', lineHeight: 18, marginBottom: 2 },
+  recipeStep: {
+    fontSize: 12,
+    color: '#374151',
+    lineHeight: 18,
+    marginBottom: 2,
+  },
   recipeServe: { fontSize: 11, color: '#4b5563', lineHeight: 16 },
   portionTable: { marginTop: 8, gap: 6 },
   portionHeaderRow: { flexDirection: 'row', gap: 4 },
