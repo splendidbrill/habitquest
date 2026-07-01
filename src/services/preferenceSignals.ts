@@ -11,6 +11,7 @@
 import { storage } from '../utils/storage';
 import { mealArchetypes } from '../data/mealArchetypes';
 import { activityArchetypes } from '../data/activityArchetypes';
+import { pushAppState } from './appStateSync';
 
 export type Reaction = 'loved' | 'okay' | 'not_for_us';
 
@@ -62,6 +63,7 @@ export async function recordMealReactions(
     cuisine[meal.cuisine] = (cuisine[meal.cuisine] ?? 0) + REACTION_WEIGHT[r];
   }
   await storage.setItem(PREF_KEYS.cuisine, JSON.stringify(cuisine));
+  void pushAppState();
 }
 
 /** Record activity swipe reactions and re-aggregate activity preferences. */
@@ -79,4 +81,5 @@ export async function recordActivityReactions(
     activity[act.category] = (activity[act.category] ?? 0) + REACTION_WEIGHT[r];
   }
   await storage.setItem(PREF_KEYS.activity, JSON.stringify(activity));
+  void pushAppState();
 }

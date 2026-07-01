@@ -37,6 +37,7 @@ import {
   emptyPreferenceModel,
 } from '../services/localPlanBuilder';
 import { enhancePlanWithAI } from '../services/planEnhancer';
+import { pushAppState } from '../services/appStateSync';
 import { buildMealWhy, buildActivityWhy } from '../services/transparency';
 import {
   recordMealFeedback,
@@ -259,6 +260,8 @@ export function WeeklyPlan() {
       'weeklyPlanDate',
       new Date().toISOString().split('T')[0],
     );
+    // Mirror the new plan so a returning user keeps it across devices/reinstall.
+    void pushAppState();
     setLoading(false);
 
     // Optional AI upgrade — runs AFTER the working plan is already on screen.
@@ -271,7 +274,9 @@ export function WeeklyPlan() {
         const upgraded = enrichPlanWhy(improved, model, p);
         setPlan(upgraded);
         setAiEnhanced(true);
-        void storage.setItem('weeklyPlan', JSON.stringify(upgraded));
+        void storage
+          .setItem('weeklyPlan', JSON.stringify(upgraded))
+          .then(() => pushAppState());
       })
       .catch(() => {
         /* keep the deterministic plan */

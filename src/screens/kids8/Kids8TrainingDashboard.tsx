@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   ScrollView,
   SafeAreaView,
   Animated,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
@@ -26,6 +28,19 @@ import {
   selectDailyMovementQuest,
   type MovementQuest,
 } from '../../data/movementQuests';
+import {
+  getTodaysPlan,
+  type DayMeal,
+  type DayActivity,
+} from '../../services/weeklyPlanStore';
+import {
+  getKidsMealExplanation,
+  type KidsMealExplanation,
+} from '../../services/kidsMealExplainer';
+import {
+  getKidsExerciseExplanation,
+  type KidsExerciseExplanation,
+} from '../../services/kidsExerciseExplainer';
 import {
   kids8Theme as T,
   KIDS8_BG_GRADIENT,
@@ -153,10 +168,35 @@ export function Kids8TrainingDashboard() {
   const { activeChild } = useChild();
   const { showSpin, dismissSpin } = useDailySpin();
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
+  const [todaysMeal, setTodaysMeal] = useState<DayMeal | null>(null);
+  const [mealModalVisible, setMealModalVisible] = useState(false);
+  const [mealExplanation, setMealExplanation] =
+    useState<KidsMealExplanation | null>(null);
+  const [loadingMeal, setLoadingMeal] = useState(false);
+  const [todaysActivity, setTodaysActivity] = useState<DayActivity | null>(null);
+  const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
+  const [exerciseExplanation, setExerciseExplanation] =
+    useState<KidsExerciseExplanation | null>(null);
+  const [loadingExercise, setLoadingExercise] = useState(false);
+  const [missionDone, setMissionDone] = useState(false);
 
   useEffect(() => {
     loadFamilyProfile().then(setProfile);
+    getTodaysPlan().then(p => {
+      setTodaysMeal(p.meal);
+      setTodaysActivity(p.activity);
+    });
   }, []);
+
+  // Re-check completion whenever the hub regains focus (native-stack keeps this
+  // screen mounted, so returning from the mission must refresh the done state).
+  useFocusEffect(
+    useCallback(() => {
+      storage.getItem('kids8MissionCompletedDate').then(v => {
+        setMissionDone(v === new Date().toDateString());
+      });
+    }, []),
+  );
 
   // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
   useEffect(() => {
@@ -196,6 +236,28 @@ export function Kids8TrainingDashboard() {
 
   const go = (screen: keyof RootStackParamList) =>
     navigation.navigate(screen as never);
+
+  const openMeal = async () => {
+    if (!todaysMeal) return;
+    setMealModalVisible(true);
+    if (!mealExplanation) {
+      setLoadingMeal(true);
+      const ex = await getKidsMealExplanation(todaysMeal, '8-10');
+      setMealExplanation(ex);
+      setLoadingMeal(false);
+    }
+  };
+
+  const openExercise = async () => {
+    if (!todaysActivity) return;
+    setExerciseModalVisible(true);
+    if (!exerciseExplanation) {
+      setLoadingExercise(true);
+      const ex = await getKidsExerciseExplanation(todaysActivity, '8-10');
+      setExerciseExplanation(ex);
+      setLoadingExercise(false);
+    }
+  };
 
   const renderTiles = (tiles: Tile[]) => (
     <View style={styles.tileGrid}>
@@ -289,43 +351,101 @@ export function Kids8TrainingDashboard() {
           {/* Today's Adventure — the daily Movement Quest */}
           <View style={styles.sectionHead}>
             <Text style={styles.sectionTitle}>Today's Adventure</Text>
-            <TouchableOpacity onPress={() => go('Kids8DailyMission')}>
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
+            {!missionDone && (
+              <TouchableOpacity onPress={() => go('Kids8DailyMission')}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => go('Kids8DailyMission')}
-          >
-            <View style={styles.questCard}>
-              <Text style={styles.questEmoji}>{quest.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.questTitle}>{quest.title}</Text>
-                <Text style={styles.questSub} numberOfLines={2}>
-                  {quest.challenge}
-                </Text>
-                <View style={styles.questMetaRow}>
-                  <Text style={styles.questMeta}>
-                    ⏱ {quest.durationMin} min
+          {missionDone ? (
+            <View style={styles.doneCard}>
+              <Text style={styles.doneEmoji}>🎉</Text>
+              <Text style={styles.doneTitle}>Adventure Complete!</Text>
+              <Text style={styles.doneSub}>
+                Come back tomorrow for a new one! 🌟
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => go('Kids8DailyMission')}
+            >
+              <View style={styles.questCard}>
+                <Text style={styles.questEmoji}>{quest.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.questTitle}>{quest.title}</Text>
+                  <Text style={styles.questSub} numberOfLines={2}>
+                    {quest.challenge}
                   </Text>
-                  <Text style={styles.questXp}>+{quest.xp} XP</Text>
+                  <View style={styles.questMetaRow}>
+                    <Text style={styles.questMeta}>
+                      ⏱ {quest.durationMin} min
+                    </Text>
+                    <Text style={styles.questXp}>+{quest.xp} XP</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
+
+          {/* Your fuel for the day — same meal the parent sees, made exciting */}
+          {todaysMeal && (
+            <TouchableOpacity activeOpacity={0.92} onPress={openMeal}>
+              <LinearGradient
+                colors={KIDS8_GRADIENTS.dinner}
+                style={styles.planCard}
+              >
+                <Text style={styles.planEmoji}>🍽️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planKicker}>YOUR FUEL FOR THE DAY</Text>
+                  <Text style={styles.planName} numberOfLines={2}>
+                    {todaysMeal.name}
+                  </Text>
+                  <View style={styles.planPill}>
+                    <Text style={styles.planPillText}>
+                      Tap to see why it fuels you ⚡
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* Your move for the day — same activity the parent sees, made cool */}
+          {todaysActivity && (
+            <TouchableOpacity activeOpacity={0.92} onPress={openExercise}>
+              <LinearGradient
+                colors={KIDS8_GRADIENTS.games}
+                style={styles.planCard}
+              >
+                <Text style={styles.planEmoji}>🤸</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planKicker}>YOUR MOVE FOR THE DAY</Text>
+                  <Text style={styles.planName} numberOfLines={2}>
+                    {todaysActivity.name}
+                  </Text>
+                  <View style={styles.planPill}>
+                    <Text style={styles.planPillText}>
+                      Tap to see why it's awesome 🔥
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* Personalised recommendations */}
           <RecommendedMissions isDark={false} />
 
           {/* Grouped sections */}
-          <Text style={styles.groupTitle}>🎮 Games</Text>
-          {renderTiles(GAME_TILES)}
-
           <Text style={styles.groupTitle}>🍎 Food Adventures</Text>
           {renderTiles(FOOD_TILES)}
 
           <Text style={styles.groupTitle}>🎒 School Tools</Text>
           {renderTiles(SCHOOL_TILES)}
+
+          <Text style={styles.groupTitle}>🎮 Games</Text>
+          {renderTiles(GAME_TILES)}
 
           {/* Main CTA */}
           <TouchableOpacity activeOpacity={0.9} onPress={() => go('WorldMap')}>
@@ -371,6 +491,151 @@ export function Kids8TrainingDashboard() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* "Your fuel for the day" — AI-driven, kid-friendly meal explainer */}
+        <Modal
+          visible={mealModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMealModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.planOverlay}
+            activeOpacity={1}
+            onPress={() => setMealModalVisible(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.planModalCard}
+              onPress={() => {}}
+            >
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.planModalEmoji}>🍽️</Text>
+                <Text style={styles.planModalTitle}>{todaysMeal?.name}</Text>
+
+                {loadingMeal || !mealExplanation ? (
+                  <View style={styles.planLoading}>
+                    <ActivityIndicator size="large" color={T.accent} />
+                    <Text style={styles.planLoadingText}>
+                      Working out why it fuels you… ⚡
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.planHook}>{mealExplanation.hook}</Text>
+                    {mealExplanation.superpowers.length > 0 && (
+                      <View style={styles.planPowersBox}>
+                        <Text style={styles.planBoxTitle}>
+                          💪 Your fuel powers
+                        </Text>
+                        {mealExplanation.superpowers.map((p, i) => (
+                          <Text key={i} style={styles.planPowerItem}>
+                            ⭐ {p}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {!!mealExplanation.funFact && (
+                      <View style={styles.planFactBox}>
+                        <Text style={styles.planBoxTitle}>🤩 Cool fact</Text>
+                        <Text style={styles.planFactText}>
+                          {mealExplanation.funFact}
+                        </Text>
+                      </View>
+                    )}
+                    {!!mealExplanation.cheer && (
+                      <Text style={styles.planCheer}>{mealExplanation.cheer}</Text>
+                    )}
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={styles.planCloseBtn}
+                  onPress={() => setMealModalVisible(false)}
+                >
+                  <Text style={styles.planCloseText}>Fuel up! 😋</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* "Your move for the day" — AI-driven, kid-friendly exercise explainer */}
+        <Modal
+          visible={exerciseModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setExerciseModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.planOverlay}
+            activeOpacity={1}
+            onPress={() => setExerciseModalVisible(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.planModalCard}
+              onPress={() => {}}
+            >
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.planModalEmoji}>🤸</Text>
+                <Text style={styles.planModalTitle}>{todaysActivity?.name}</Text>
+                {todaysActivity?.description ? (
+                  <Text style={styles.planDesc}>
+                    {todaysActivity.description}
+                  </Text>
+                ) : null}
+
+                {loadingExercise || !exerciseExplanation ? (
+                  <View style={styles.planLoading}>
+                    <ActivityIndicator size="large" color={T.accent} />
+                    <Text style={styles.planLoadingText}>
+                      Working out why it's awesome… 🔥
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.planHook}>
+                      {exerciseExplanation.hook}
+                    </Text>
+                    {exerciseExplanation.superpowers.length > 0 && (
+                      <View style={styles.planPowersBox}>
+                        <Text style={styles.planBoxTitle}>
+                          💪 Why it's awesome
+                        </Text>
+                        {exerciseExplanation.superpowers.map((p, i) => (
+                          <Text key={i} style={styles.planPowerItem}>
+                            ⭐ {p}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {!!exerciseExplanation.funFact && (
+                      <View style={styles.planFactBox}>
+                        <Text style={styles.planBoxTitle}>🤩 Cool fact</Text>
+                        <Text style={styles.planFactText}>
+                          {exerciseExplanation.funFact}
+                        </Text>
+                      </View>
+                    )}
+                    {!!exerciseExplanation.cheer && (
+                      <Text style={styles.planCheer}>
+                        {exerciseExplanation.cheer}
+                      </Text>
+                    )}
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={styles.planCloseBtn}
+                  onPress={() => setExerciseModalVisible(false)}
+                >
+                  <Text style={styles.planCloseText}>Let's go! 🚀</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         <DailySpin visible={showSpin} onClose={dismissSpin} />
         <ParentReactionBanner />
@@ -495,6 +760,134 @@ const styles = StyleSheet.create({
   questMetaRow: { flexDirection: 'row', gap: 12, marginTop: 6 },
   questMeta: { fontSize: 12, fontWeight: '700', color: T.purple700 },
   questXp: { fontSize: 12, fontWeight: '800', color: T.accent },
+
+  doneCard: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: T.radius,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  doneEmoji: { fontSize: 52, marginBottom: 6 },
+  doneTitle: { fontSize: 20, fontWeight: '800', color: T.purple900 },
+  doneSub: {
+    fontSize: 14,
+    color: '#6B5B95',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+
+  planCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: T.radius,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  planEmoji: { fontSize: 42 },
+  planKicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.95)',
+    letterSpacing: 0.6,
+  },
+  planName: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
+  planPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  planPillText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+
+  planOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  planModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 22,
+    maxHeight: '85%',
+  },
+  planModalEmoji: { fontSize: 50, textAlign: 'center', marginBottom: 4 },
+  planModalTitle: {
+    fontSize: 23,
+    fontWeight: '800',
+    color: T.purple900,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  planDesc: {
+    fontSize: 15,
+    color: '#6B5B95',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: -6,
+    marginBottom: 14,
+  },
+  planLoading: { alignItems: 'center', paddingVertical: 30, gap: 12 },
+  planLoadingText: { fontSize: 15, fontWeight: '600', color: T.purple700 },
+  planHook: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: T.accent,
+    textAlign: 'center',
+    lineHeight: 25,
+    marginBottom: 16,
+  },
+  planPowersBox: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  planFactBox: {
+    backgroundColor: '#E0F2FE',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+  },
+  planBoxTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: T.purple900,
+    marginBottom: 8,
+  },
+  planPowerItem: {
+    fontSize: 15,
+    color: '#78350F',
+    lineHeight: 23,
+    marginBottom: 4,
+  },
+  planFactText: { fontSize: 15, color: '#0C4A6E', lineHeight: 22 },
+  planCheer: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: T.primary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  planCloseBtn: {
+    backgroundColor: T.primary,
+    borderRadius: 50,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  planCloseText: { fontSize: 18, fontWeight: '800', color: '#fff' },
 
   groupTitle: {
     fontSize: 17,

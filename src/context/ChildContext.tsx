@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
+import { useAuth } from './AuthContext';
 import { loadChildSnapshot } from '../services/syncService';
 import {
   scheduleDailyNotifications,
@@ -44,6 +52,21 @@ export function ChildProvider({ children }: { children: React.ReactNode }) {
     null,
   );
   const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
+
+  // Reset the in-memory selection whenever the signed-in account changes
+  // (sign-out or a different user signing in), so one account never sees the
+  // previous account's selected child. AsyncStorage is cleared separately in
+  // AuthContext; this clears the React-side cache that survives a sign-out.
+  const { user } = useAuth();
+  const lastUserId = useRef<string | null>(null);
+  useEffect(() => {
+    const id = user?.id ?? null;
+    if (id !== lastUserId.current) {
+      lastUserId.current = id;
+      setActiveChildState(null);
+      setEarnedBadges([]);
+    }
+  }, [user?.id]);
 
   // When a child profile is selected, pull the latest snapshot from Supabase
   const setActiveChild = useCallback(async (child: ChildProfile | null) => {

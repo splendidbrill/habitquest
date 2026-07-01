@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button';
 import { Checkbox } from '../components/ui/Checkbox';
 import { storage } from '../utils/storage';
 import { mapAnswersToProfile, syncFamilyProfile } from '../data/familyProfile';
+import { pushAppState } from '../services/appStateSync';
 import { colors, typography, radius, withOpacity } from '../theme';
 import type { RootStackParamList } from '../navigation';
 
@@ -365,6 +366,9 @@ export function Onboarding() {
       // Mirror the canonical profile to the synced family_profiles row
       // (offline-first: AsyncStorage above is the source of truth).
       await syncFamilyProfile(mapAnswersToProfile(answers));
+      // Mirror the local cache (incl. these answers) to user_app_state so a
+      // returning user is restored rather than re-onboarded.
+      void pushAppState();
       // Layer-1 questions done → food/activity swipe discovery (Phase 3),
       // which finishes into MainApp.
       navigation.replace('FoodSwipe');

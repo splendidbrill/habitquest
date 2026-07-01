@@ -16,14 +16,160 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
 
-const tasks = [
-  { id: 'wash-veggies', emoji: '🥬', title: 'Washed Vegetables', description: 'Help wash the veggies for cooking', tips: ['🚿 Use cold water to rinse vegetables clean', '✋ Rub gently to remove dirt', '👀 Check both sides - dirt likes to hide!', '💧 Pat dry with a clean towel after washing'], whyItHelps: 'Washing removes dirt and germs so the food is safe. You\'re helping keep the family healthy!', skillLearned: 'Food Safety & Cleanliness' },
-  { id: 'stir', emoji: '🥄', title: 'Stirred Ingredients', description: 'Stir the pot (with adult help!)', tips: ['🥄 Use a long wooden spoon so you don\'t get burned', '🔄 Stir slowly in circles - not too fast!', '👃 Smell the yummy spices as you stir', '⚠️ Never touch the pot - it\'s HOT! Ask an adult'], whyItHelps: 'Stirring mixes flavours together and stops food from burning. You\'re learning real cooking skills!', skillLearned: 'Cooking Technique & Kitchen Safety' },
-  { id: 'set-table', emoji: '🍽️', title: 'Set the Table', description: 'Put out plates, spoons, and cups', tips: ['🍽️ Plate goes in front of each chair', '🥄 Spoon on the right, fork on the left', '🥤 Glass goes above the plate', '😊 Make it look nice - you\'re creating a happy mealtime!'], whyItHelps: 'Setting the table shows care for your family and makes mealtimes special.', skillLearned: 'Responsibility & Family Care' },
+// Full pool of kid-safe kitchen jobs. Each week the helper shows a different
+// rotating set of 3 (see getWeeklyTasks) so the tasks change every week.
+const TASK_POOL = [
+  {
+    id: 'wash-veggies',
+    emoji: '🥬',
+    title: 'Washed Vegetables',
+    description: 'Help wash the veggies for cooking',
+    tips: [
+      '🚿 Use cold water to rinse vegetables clean',
+      '✋ Rub gently to remove dirt',
+      '👀 Check both sides - dirt likes to hide!',
+      '💧 Pat dry with a clean towel after washing',
+    ],
+    whyItHelps:
+      "Washing removes dirt and germs so the food is safe. You're helping keep the family healthy!",
+    skillLearned: 'Food Safety & Cleanliness',
+  },
+  {
+    id: 'stir',
+    emoji: '🥄',
+    title: 'Stirred Ingredients',
+    description: 'Stir the pot (with adult help!)',
+    tips: [
+      "🥄 Use a long wooden spoon so you don't get burned",
+      '🔄 Stir slowly in circles - not too fast!',
+      '👃 Smell the yummy spices as you stir',
+      "⚠️ Never touch the pot - it's HOT! Ask an adult",
+    ],
+    whyItHelps:
+      "Stirring mixes flavours together and stops food from burning. You're learning real cooking skills!",
+    skillLearned: 'Cooking Technique & Kitchen Safety',
+  },
+  {
+    id: 'set-table',
+    emoji: '🍽️',
+    title: 'Set the Table',
+    description: 'Put out plates, spoons, and cups',
+    tips: [
+      '🍽️ Plate goes in front of each chair',
+      '🥄 Spoon on the right, fork on the left',
+      '🥤 Glass goes above the plate',
+      "😊 Make it look nice - you're creating a happy mealtime!",
+    ],
+    whyItHelps:
+      'Setting the table shows care for your family and makes mealtimes special.',
+    skillLearned: 'Responsibility & Family Care',
+  },
+  {
+    id: 'mix-salad',
+    emoji: '🥗',
+    title: 'Tossed the Salad',
+    description: 'Mix the salad in a big bowl',
+    tips: [
+      '🥗 Use two big spoons to toss gently',
+      '🌈 Count the colours - the more the better!',
+      '💧 Add the dressing last so it stays crunchy',
+      '🍋 A squeeze of lemon makes it extra tasty',
+    ],
+    whyItHelps:
+      'Mixing lots of colourful veggies gives your body lots of different vitamins!',
+    skillLearned: 'Healthy Eating & Coordination',
+  },
+  {
+    id: 'measure',
+    emoji: '🥣',
+    title: 'Measured Ingredients',
+    description: 'Scoop and level the cups and spoons',
+    tips: [
+      '🥣 Fill the cup right to the top',
+      '📏 Level it off flat with a knife (ask an adult)',
+      '🔢 Count out loud as you scoop',
+      '👏 Being exact makes the food turn out just right',
+    ],
+    whyItHelps:
+      'Measuring carefully is like being a food scientist - it helps the recipe work!',
+    skillLearned: 'Maths & Following Recipes',
+  },
+  {
+    id: 'crack-egg',
+    emoji: '🥚',
+    title: 'Cracked the Eggs',
+    description: 'Crack eggs into a bowl (with help!)',
+    tips: [
+      '🥚 Tap the egg gently on the edge of the bowl',
+      '👐 Pull the shell apart with both thumbs',
+      '👀 Check for any little shell bits',
+      '🧼 Wash your hands after - eggs need clean hands',
+    ],
+    whyItHelps:
+      'Eggs help you grow strong muscles, and cracking them takes careful hands!',
+    skillLearned: 'Fine Motor Skills & Hygiene',
+  },
+  {
+    id: 'pour',
+    emoji: '🫗',
+    title: 'Poured the Drinks',
+    description: 'Pour water or milk into cups',
+    tips: [
+      '🫗 Hold the jug with two hands',
+      '🐢 Pour slowly - slow and steady wins!',
+      '🛑 Stop before it reaches the top',
+      '🧽 Wipe up any spills like a pro',
+    ],
+    whyItHelps:
+      'Pouring carefully helps everyone stay hydrated and shows great control!',
+    skillLearned: 'Balance & Serving Others',
+  },
+  {
+    id: 'tidy',
+    emoji: '🧽',
+    title: 'Tidied Up',
+    description: 'Wipe the table and put things away',
+    tips: [
+      '🧽 Wipe in big circles to clean it all',
+      '🗑️ Put rubbish in the bin',
+      '🧴 Put lids back on jars',
+      '✨ A clean kitchen is a happy kitchen!',
+    ],
+    whyItHelps:
+      "Cleaning up keeps the kitchen safe and shows you're a great team player.",
+    skillLearned: 'Responsibility & Teamwork',
+  },
+  {
+    id: 'plate',
+    emoji: '🍚',
+    title: 'Plated the Food',
+    description: "Help put food onto everyone's plate",
+    tips: [
+      '🥄 Give everyone a fair share',
+      '🌈 Make the plate look colourful',
+      '🔥 Ask an adult to move hot pans',
+      '😋 A pretty plate makes food more fun to eat',
+    ],
+    whyItHelps:
+      'Sharing food fairly is kind, and a colourful plate has lots of goodness!',
+    skillLearned: 'Sharing & Presentation',
+  },
 ];
 
+/** Week bucket — changes once every 7 days. */
+function weekNumber(d = new Date()): number {
+  return Math.floor(d.getTime() / 86_400_000 / 7);
+}
+
+/** The 3 kitchen tasks for the current week, rotating through the pool. */
+function getWeeklyTasks() {
+  const start = (weekNumber() * 3) % TASK_POOL.length;
+  return [0, 1, 2].map(i => TASK_POOL[(start + i) % TASK_POOL.length]);
+}
+
 export function KidsKitchenHelper() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [currentTask, setCurrentTask] = useState<string | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
@@ -31,13 +177,29 @@ export function KidsKitchenHelper() {
   const [pin, setPin] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // This week's rotating set of 3 tasks (changes automatically every 7 days).
+  const tasks = getWeeklyTasks();
+
   useEffect(() => {
-    storage.getItem('kidsCompletedKitchenTasks').then(v => {
+    (async () => {
+      // If a new week has started, reset last week's progress so this week's
+      // fresh tasks can be completed again.
+      const currentWeek = String(weekNumber());
+      const storedWeek = await storage.getItem('kidsKitchenWeek');
+      if (storedWeek !== currentWeek) {
+        await storage.setItem('kidsKitchenWeek', currentWeek);
+        await storage.setItem('kidsCompletedKitchenTasks', '[]');
+        await storage.setItem('kidsKitchenHelperDone', 'false');
+        setCompletedTasks([]);
+        setShowSuccess(false);
+        return;
+      }
+
+      const v = await storage.getItem('kidsCompletedKitchenTasks');
       if (v) setCompletedTasks(JSON.parse(v));
-    });
-    storage.getItem('kidsKitchenHelperDone').then(v => {
-      if (v === 'true') setShowSuccess(true);
-    });
+      const done = await storage.getItem('kidsKitchenHelperDone');
+      if (done === 'true') setShowSuccess(true);
+    })();
   }, []);
 
   const openTips = (taskId: string) => {
@@ -54,11 +216,16 @@ export function KidsKitchenHelper() {
     if ((pin === '1234' || pin === '👍') && currentTask) {
       const newCompleted = [...completedTasks, currentTask];
       setCompletedTasks(newCompleted);
-      await storage.setItem('kidsCompletedKitchenTasks', JSON.stringify(newCompleted));
+      await storage.setItem(
+        'kidsCompletedKitchenTasks',
+        JSON.stringify(newCompleted),
+      );
       const pts = parseInt((await storage.getItem('kidsFamilyPoints')) ?? '0');
       await storage.setItem('kidsFamilyPoints', String(pts + 1));
       if (newCompleted.length === tasks.length) {
-        const badges = JSON.parse((await storage.getItem('kidsEarnedBadges')) ?? '[]');
+        const badges = JSON.parse(
+          (await storage.getItem('kidsEarnedBadges')) ?? '[]',
+        );
         if (!badges.includes('kitchen-champion')) {
           badges.push('kitchen-champion');
           await storage.setItem('kidsEarnedBadges', JSON.stringify(badges));
@@ -77,41 +244,63 @@ export function KidsKitchenHelper() {
   const currentTaskData = tasks.find(t => t.id === currentTask);
 
   return (
-    <LinearGradient colors={['#fef9c3', '#fed7aa', '#fef3c7']} style={styles.container}>
+    <LinearGradient
+      colors={['#fef9c3', '#fed7aa', '#fef3c7']}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}
+            >
               <ArrowLeft size={24} color="#374151" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Kitchen Helper</Text>
             <View style={{ width: 44 }} />
           </View>
 
-          <LinearGradient colors={['#fbbf24', '#f97316']} style={styles.heroCard}>
+          <LinearGradient
+            colors={['#fbbf24', '#f97316']}
+            style={styles.heroCard}
+          >
             <Text style={styles.heroEmoji}>👨‍🍳</Text>
             <Text style={styles.heroTitle}>Help in the Kitchen!</Text>
-            <Text style={styles.heroDesc}>Complete tasks to earn points and become a Kitchen Champion!</Text>
+            <Text style={styles.heroDesc}>
+              Complete tasks to earn points and become a Kitchen Champion!
+            </Text>
           </LinearGradient>
 
           {showSuccess ? (
             <View style={styles.successCard}>
               <Text style={styles.successEmoji}>🏆</Text>
               <Text style={styles.successTitle}>Kitchen Champion!</Text>
-              <Text style={styles.successDesc}>You helped with all the tasks today! Your family is so lucky to have you! 🌟</Text>
+              <Text style={styles.successDesc}>
+                You helped with all the tasks today! Your family is so lucky to
+                have you! 🌟
+              </Text>
             </View>
           ) : (
             <View style={styles.taskList}>
               {tasks.map(task => {
                 const isDone = completedTasks.includes(task.id);
                 return (
-                  <View key={task.id} style={[styles.taskCard, isDone && styles.taskCardDone]}>
+                  <View
+                    key={task.id}
+                    style={[styles.taskCard, isDone && styles.taskCardDone]}
+                  >
                     <View style={styles.taskRow}>
                       <Text style={styles.taskEmoji}>{task.emoji}</Text>
                       <View style={styles.taskInfo}>
                         <Text style={styles.taskTitle}>{task.title}</Text>
                         <Text style={styles.taskDesc}>{task.description}</Text>
-                        <Text style={styles.skillText}>🎓 {task.skillLearned}</Text>
+                        <Text style={styles.skillText}>
+                          🎓 {task.skillLearned}
+                        </Text>
                       </View>
                       {isDone && <CheckCircle size={28} color="#22c55e" />}
                     </View>
@@ -127,12 +316,16 @@ export function KidsKitchenHelper() {
                           style={styles.doneBtn}
                           onPress={() => openPin(task.id)}
                         >
-                          <Text style={styles.doneBtnText}>🔒 I Did It! +1</Text>
+                          <Text style={styles.doneBtnText}>
+                            🔒 I Did It! +1
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     )}
                     {isDone && (
-                      <Text style={styles.doneLabel}>✓ Completed! +1 Point</Text>
+                      <Text style={styles.doneLabel}>
+                        ✓ Completed! +1 Point
+                      </Text>
                     )}
                   </View>
                 );
@@ -143,28 +336,42 @@ export function KidsKitchenHelper() {
           <View style={styles.progressCard}>
             <Sparkles size={20} color="#d97706" />
             <Text style={styles.progressText}>
-              {' '}{completedTasks.length} / {tasks.length} tasks done
+              {' '}
+              {completedTasks.length} / {tasks.length} tasks done
             </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
 
       <Modal visible={showTipsModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowTipsModal(false)}>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowTipsModal(false)}
+        >
           {currentTaskData && (
-            <TouchableOpacity activeOpacity={1} style={styles.modalCard} onPress={() => {}}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.modalCard}
+              onPress={() => {}}
+            >
               <Text style={styles.modalEmoji}>{currentTaskData.emoji}</Text>
               <Text style={styles.modalTitle}>{currentTaskData.title}</Text>
               <View style={styles.tipsBox}>
                 {currentTaskData.tips.map((tip, i) => (
-                  <Text key={i} style={styles.tipItem}>{tip}</Text>
+                  <Text key={i} style={styles.tipItem}>
+                    {tip}
+                  </Text>
                 ))}
               </View>
               <View style={styles.whyBox}>
                 <Text style={styles.whyTitle}>❤️ Why This Helps:</Text>
                 <Text style={styles.whyText}>{currentTaskData.whyItHelps}</Text>
               </View>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowTipsModal(false)}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setShowTipsModal(false)}
+              >
                 <Text style={styles.closeBtnText}>Got It! 👍</Text>
               </TouchableOpacity>
             </TouchableOpacity>
@@ -173,12 +380,26 @@ export function KidsKitchenHelper() {
       </Modal>
 
       <Modal visible={showPinModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowPinModal(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.pinCard} onPress={() => {}}>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowPinModal(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.pinCard}
+            onPress={() => {}}
+          >
             <Text style={styles.lockEmoji}>🔒</Text>
             <Text style={styles.pinTitle}>Ask a Parent!</Text>
             <Text style={styles.pinDesc}>Did you complete this task?</Text>
-            <TouchableOpacity style={styles.approveBtn} onPress={() => { setPin('👍'); setTimeout(handlePinSubmit, 100); }}>
+            <TouchableOpacity
+              style={styles.approveBtn}
+              onPress={() => {
+                setPin('👍');
+                setTimeout(handlePinSubmit, 100);
+              }}
+            >
               <Text style={styles.approveBtnText}>👍 Task Completed</Text>
             </TouchableOpacity>
             <TextInput
@@ -190,10 +411,18 @@ export function KidsKitchenHelper() {
               keyboardType="numeric"
               maxLength={4}
             />
-            <TouchableOpacity style={styles.submitPin} onPress={handlePinSubmit}>
+            <TouchableOpacity
+              style={styles.submitPin}
+              onPress={handlePinSubmit}
+            >
               <Text style={styles.submitPinText}>Submit PIN</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setShowPinModal(false); setPin(''); }}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowPinModal(false);
+                setPin('');
+              }}
+            >
               <Text style={styles.cancelPinText}>Cancel</Text>
             </TouchableOpacity>
           </TouchableOpacity>
@@ -240,8 +469,18 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   heroEmoji: { fontSize: 52, marginBottom: 8 },
-  heroTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  heroDesc: { fontSize: 14, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 20 },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  heroDesc: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   successCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -255,8 +494,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   successEmoji: { fontSize: 64, marginBottom: 8 },
-  successTitle: { fontSize: 26, fontWeight: '800', color: '#1f2937', marginBottom: 6 },
-  successDesc: { fontSize: 15, color: '#4b5563', textAlign: 'center', lineHeight: 22 },
+  successTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#1f2937',
+    marginBottom: 6,
+  },
+  successDesc: {
+    fontSize: 15,
+    color: '#4b5563',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
   taskList: { gap: 14 },
   taskCard: {
     backgroundColor: '#fff',
@@ -269,10 +518,20 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   taskCardDone: { backgroundColor: '#f0fdf4' },
-  taskRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
   taskEmoji: { fontSize: 40 },
   taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginBottom: 2 },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
   taskDesc: { fontSize: 13, color: '#6b7280', marginBottom: 2 },
   skillText: { fontSize: 12, color: '#0d9488', fontWeight: '600' },
   taskActions: { flexDirection: 'row', gap: 10 },
@@ -292,7 +551,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   doneBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  doneLabel: { fontSize: 14, fontWeight: '600', color: '#16a34a', textAlign: 'center' },
+  doneLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#16a34a',
+    textAlign: 'center',
+  },
   progressCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -316,7 +580,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalEmoji: { fontSize: 52, marginBottom: 4 },
-  modalTitle: { fontSize: 22, fontWeight: '700', color: '#1f2937', marginBottom: 14 },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 14,
+  },
   tipsBox: {
     backgroundColor: '#f0fdf4',
     borderRadius: 14,
@@ -332,7 +601,12 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
   },
-  whyTitle: { fontSize: 14, fontWeight: '700', color: '#78350f', marginBottom: 4 },
+  whyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#78350f',
+    marginBottom: 4,
+  },
   whyText: { fontSize: 13, color: '#92400e', lineHeight: 20 },
   closeBtn: {
     backgroundColor: '#f97316',
@@ -349,7 +623,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lockEmoji: { fontSize: 52, marginBottom: 8 },
-  pinTitle: { fontSize: 24, fontWeight: '700', color: '#1f2937', marginBottom: 4 },
+  pinTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
   pinDesc: { fontSize: 15, color: '#6b7280', marginBottom: 16 },
   approveBtn: {
     backgroundColor: '#22c55e',
@@ -381,5 +660,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   submitPinText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  cancelPinText: { fontSize: 15, color: '#6b7280', fontWeight: '600', paddingVertical: 6 },
+  cancelPinText: {
+    fontSize: 15,
+    color: '#6b7280',
+    fontWeight: '600',
+    paddingVertical: 6,
+  },
 });

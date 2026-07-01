@@ -28,9 +28,14 @@ export function Kids8DailyMission() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   const [started, setStarted] = useState(false);
+  const [alreadyDone, setAlreadyDone] = useState(false);
 
   useEffect(() => {
     loadFamilyProfile().then(setProfile);
+    // Mission counts as done only if completed TODAY, so it re-opens tomorrow.
+    storage.getItem('kids8MissionCompletedDate').then(v => {
+      setAlreadyDone(v === new Date().toDateString());
+    });
   }, []);
 
   // The SAME daily Movement Quest the home hub shows for this age band, so the
@@ -38,12 +43,16 @@ export function Kids8DailyMission() {
   const quest: MovementQuest = selectDailyMovementQuest('8-10', profile);
 
   const handleComplete = async () => {
+    if (alreadyDone) return;
     const completed = await storage.getItem('kids8CompletedMissions');
     await storage.setItem(
       'kids8CompletedMissions',
       String(parseInt(completed || '0') + 1),
     );
     await storage.setItem('kids8LastUnlock', `${quest.title} complete`);
+    // Mark done for today so the card + this screen lock until tomorrow.
+    await storage.setItem('kids8MissionCompletedDate', new Date().toDateString());
+    setAlreadyDone(true);
     // Kids8SuccessCelebration updates the streak + parent Progress (Phase A.3).
     navigation.navigate('Kids8SuccessCelebration');
   };
@@ -106,7 +115,11 @@ export function Kids8DailyMission() {
               </View>
             </View>
 
-            {!started ? (
+            {alreadyDone ? (
+              <View style={[styles.actionBtn, styles.doneBtn]}>
+                <Text style={styles.actionBtnText}>✅ Done for the day!</Text>
+              </View>
+            ) : !started ? (
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => setStarted(true)}
@@ -135,7 +148,9 @@ export function Kids8DailyMission() {
           </View>
 
           <Text style={styles.encouragement}>
-            {started
+            {alreadyDone
+              ? 'You already smashed today’s adventure — see you tomorrow! 🌟'
+              : started
               ? 'Amazing effort — you’re getting stronger! 🔥'
               : 'Every adventure makes you stronger! 💪'}
           </Text>
@@ -273,6 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionBtnText: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  doneBtn: { backgroundColor: '#9CA3AF' },
   encouragement: {
     textAlign: 'center',
     fontSize: 15,

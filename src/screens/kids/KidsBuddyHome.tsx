@@ -7,6 +7,8 @@ import {
   ScrollView,
   SafeAreaView,
   Animated,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -31,6 +33,19 @@ import {
   selectDailyMovementQuest,
   type MovementQuest,
 } from '../../data/movementQuests';
+import {
+  getTodaysPlan,
+  type DayMeal,
+  type DayActivity,
+} from '../../services/weeklyPlanStore';
+import {
+  getKidsMealExplanation,
+  type KidsMealExplanation,
+} from '../../services/kidsMealExplainer';
+import {
+  getKidsExerciseExplanation,
+  type KidsExerciseExplanation,
+} from '../../services/kidsExerciseExplainer';
 import {
   kids6Theme as T,
   KIDS6_BG_GRADIENT,
@@ -165,6 +180,16 @@ export function KidsBuddyHome() {
   );
   const [freezesAvailable, setFreezesAvailable] = useState(0);
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
+  const [todaysMeal, setTodaysMeal] = useState<DayMeal | null>(null);
+  const [mealModalVisible, setMealModalVisible] = useState(false);
+  const [mealExplanation, setMealExplanation] =
+    useState<KidsMealExplanation | null>(null);
+  const [loadingMeal, setLoadingMeal] = useState(false);
+  const [todaysActivity, setTodaysActivity] = useState<DayActivity | null>(null);
+  const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
+  const [exerciseExplanation, setExerciseExplanation] =
+    useState<KidsExerciseExplanation | null>(null);
+  const [loadingExercise, setLoadingExercise] = useState(false);
 
   // Phase A.2: reaching home means avatar creation is done — flag it so
   // ProfileSelector skips the avatar flow next time.
@@ -179,6 +204,10 @@ export function KidsBuddyHome() {
     else setGreetingTime('Good Evening');
 
     loadFamilyProfile().then(setProfile);
+    getTodaysPlan().then(p => {
+      setTodaysMeal(p.meal);
+      setTodaysActivity(p.activity);
+    });
     storage.getItem('kidsBuddyName').then(v => v && setBuddyName(v));
     storage.getItem('kidsSelectedBuddy').then(v => v && setSelectedBuddy(v));
     // Mission is "done" only if completed TODAY (Phase D.1 dead-end fix).
@@ -225,6 +254,28 @@ export function KidsBuddyHome() {
 
   const go = (screen: keyof RootStackParamList) =>
     navigation.navigate(screen as never);
+
+  const openMeal = async () => {
+    if (!todaysMeal) return;
+    setMealModalVisible(true);
+    if (!mealExplanation) {
+      setLoadingMeal(true);
+      const ex = await getKidsMealExplanation(todaysMeal, '6-8');
+      setMealExplanation(ex);
+      setLoadingMeal(false);
+    }
+  };
+
+  const openExercise = async () => {
+    if (!todaysActivity) return;
+    setExerciseModalVisible(true);
+    if (!exerciseExplanation) {
+      setLoadingExercise(true);
+      const ex = await getKidsExerciseExplanation(todaysActivity, '6-8');
+      setExerciseExplanation(ex);
+      setLoadingExercise(false);
+    }
+  };
 
   const renderTiles = (tiles: Tile[]) => (
     <View style={styles.tileGrid}>
@@ -349,6 +400,52 @@ export function KidsBuddyHome() {
             </View>
           )}
 
+          {/* Your food for the day — same meal the parent sees, made exciting */}
+          {todaysMeal && (
+            <TouchableOpacity activeOpacity={0.92} onPress={openMeal}>
+              <LinearGradient
+                colors={KIDS6_GRADIENTS.dinner}
+                style={styles.foodCard}
+              >
+                <Text style={styles.foodEmoji}>🍽️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.foodKicker}>YOUR FOOD FOR THE DAY</Text>
+                  <Text style={styles.foodName} numberOfLines={2}>
+                    {todaysMeal.name}
+                  </Text>
+                  <View style={styles.foodPill}>
+                    <Text style={styles.foodPillText}>
+                      Tap to see why it's yummy! ✨
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* Your move for the day — same activity the parent sees, made fun */}
+          {todaysActivity && (
+            <TouchableOpacity activeOpacity={0.92} onPress={openExercise}>
+              <LinearGradient
+                colors={KIDS6_GRADIENTS.superhero}
+                style={styles.moveCard}
+              >
+                <Text style={styles.foodEmoji}>🤸</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.foodKicker}>YOUR MOVE FOR THE DAY</Text>
+                  <Text style={styles.foodName} numberOfLines={2}>
+                    {todaysActivity.name}
+                  </Text>
+                  <View style={styles.foodPill}>
+                    <Text style={styles.foodPillText}>
+                      Tap to see why it's so fun! ✨
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* Personalised recommendations */}
           <RecommendedMissions isDark={false} />
 
@@ -398,6 +495,159 @@ export function KidsBuddyHome() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* "Your food for the day" — AI-driven, kid-friendly meal explainer */}
+        <Modal
+          visible={mealModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMealModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.mealOverlay}
+            activeOpacity={1}
+            onPress={() => setMealModalVisible(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.mealModalCard}
+              onPress={() => {}}
+            >
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.mealModalEmoji}>🍽️</Text>
+                <Text style={styles.mealModalTitle}>{todaysMeal?.name}</Text>
+
+                {loadingMeal || !mealExplanation ? (
+                  <View style={styles.mealLoading}>
+                    <ActivityIndicator size="large" color={T.accent} />
+                    <Text style={styles.mealLoadingText}>
+                      Finding out why it's awesome… 🔎
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.mealHook}>{mealExplanation.hook}</Text>
+
+                    {mealExplanation.superpowers.length > 0 && (
+                      <View style={styles.mealPowersBox}>
+                        <Text style={styles.mealBoxTitle}>
+                          💪 Your food superpowers
+                        </Text>
+                        {mealExplanation.superpowers.map((p, i) => (
+                          <Text key={i} style={styles.mealPowerItem}>
+                            ⭐ {p}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {!!mealExplanation.funFact && (
+                      <View style={styles.mealFactBox}>
+                        <Text style={styles.mealBoxTitle}>🤩 Cool fact</Text>
+                        <Text style={styles.mealFactText}>
+                          {mealExplanation.funFact}
+                        </Text>
+                      </View>
+                    )}
+
+                    {!!mealExplanation.cheer && (
+                      <Text style={styles.mealCheer}>
+                        {mealExplanation.cheer}
+                      </Text>
+                    )}
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={styles.mealCloseBtn}
+                  onPress={() => setMealModalVisible(false)}
+                >
+                  <Text style={styles.mealCloseText}>Yummy! 😋</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* "Your move for the day" — AI-driven, kid-friendly exercise explainer */}
+        <Modal
+          visible={exerciseModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setExerciseModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.mealOverlay}
+            activeOpacity={1}
+            onPress={() => setExerciseModalVisible(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.mealModalCard}
+              onPress={() => {}}
+            >
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.mealModalEmoji}>🤸</Text>
+                <Text style={styles.mealModalTitle}>{todaysActivity?.name}</Text>
+                {todaysActivity?.description ? (
+                  <Text style={styles.moveDesc}>
+                    {todaysActivity.description}
+                  </Text>
+                ) : null}
+
+                {loadingExercise || !exerciseExplanation ? (
+                  <View style={styles.mealLoading}>
+                    <ActivityIndicator size="large" color={T.accent} />
+                    <Text style={styles.mealLoadingText}>
+                      Finding out why it's awesome… 🔎
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={styles.mealHook}>
+                      {exerciseExplanation.hook}
+                    </Text>
+
+                    {exerciseExplanation.superpowers.length > 0 && (
+                      <View style={styles.mealPowersBox}>
+                        <Text style={styles.mealBoxTitle}>
+                          💪 Why it's awesome
+                        </Text>
+                        {exerciseExplanation.superpowers.map((p, i) => (
+                          <Text key={i} style={styles.mealPowerItem}>
+                            ⭐ {p}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {!!exerciseExplanation.funFact && (
+                      <View style={styles.mealFactBox}>
+                        <Text style={styles.mealBoxTitle}>🤩 Cool fact</Text>
+                        <Text style={styles.mealFactText}>
+                          {exerciseExplanation.funFact}
+                        </Text>
+                      </View>
+                    )}
+
+                    {!!exerciseExplanation.cheer && (
+                      <Text style={styles.mealCheer}>
+                        {exerciseExplanation.cheer}
+                      </Text>
+                    )}
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={styles.mealCloseBtn}
+                  onPress={() => setExerciseModalVisible(false)}
+                >
+                  <Text style={styles.mealCloseText}>Let's go! 🚀</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         <DailySpin visible={showSpin} onClose={dismissSpin} />
         <ParentReactionBanner />
@@ -549,6 +799,129 @@ const styles = StyleSheet.create({
   doneEmoji: { fontSize: 56, marginBottom: 6 },
   doneTitle: { fontSize: 22, fontWeight: '800', color: T.foreground },
   doneSub: { fontSize: 15, color: T.muted, marginTop: 4, textAlign: 'center' },
+
+  foodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: T.radius,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 7,
+  },
+  moveCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: T.radius,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: '#818CF8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 7,
+  },
+  moveDesc: {
+    fontSize: 15,
+    color: T.muted,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: -8,
+    marginBottom: 14,
+  },
+  foodEmoji: { fontSize: 48 },
+  foodKicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.95)',
+    letterSpacing: 0.6,
+  },
+  foodName: { fontSize: 19, fontWeight: '800', color: '#fff', marginTop: 2 },
+  foodPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginTop: 10,
+  },
+  foodPillText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+
+  mealOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  mealModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 22,
+    maxHeight: '85%',
+  },
+  mealModalEmoji: { fontSize: 52, textAlign: 'center', marginBottom: 4 },
+  mealModalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: T.foreground,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  mealLoading: { alignItems: 'center', paddingVertical: 30, gap: 12 },
+  mealLoadingText: { fontSize: 15, fontWeight: '600', color: T.muted },
+  mealHook: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: T.accent,
+    textAlign: 'center',
+    lineHeight: 25,
+    marginBottom: 16,
+  },
+  mealPowersBox: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  mealFactBox: {
+    backgroundColor: '#E0F2FE',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+  },
+  mealBoxTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: T.foreground,
+    marginBottom: 8,
+  },
+  mealPowerItem: {
+    fontSize: 15,
+    color: '#78350F',
+    lineHeight: 23,
+    marginBottom: 4,
+  },
+  mealFactText: { fontSize: 15, color: '#0C4A6E', lineHeight: 22 },
+  mealCheer: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: T.primary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  mealCloseBtn: {
+    backgroundColor: T.primary,
+    borderRadius: 50,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  mealCloseText: { fontSize: 18, fontWeight: '800', color: '#fff' },
 
   groupTitle: {
     fontSize: 18,
