@@ -85,6 +85,7 @@ import { Kids12Onboarding } from '../screens/kids12/Kids12Onboarding';
 import { Kids12Today } from '../screens/kids12/Kids12Today';
 import { Kids12CheckIn } from '../screens/kids12/Kids12CheckIn';
 import { Kids12Movement } from '../screens/kids12/Kids12Movement';
+import { Kids12Challenge } from '../screens/kids12/Kids12Challenge';
 import { Kids12Reflection } from '../screens/kids12/Kids12Reflection';
 import { Kids12WellbeingTracker } from '../screens/kids12/Kids12WellbeingTracker';
 import { Kids12WeeklyPlanner } from '../screens/kids12/Kids12WeeklyPlanner';
@@ -193,6 +194,7 @@ export type RootStackParamList = {
   Kids12Today: undefined;
   Kids12CheckIn: undefined;
   Kids12Movement: undefined;
+  Kids12Challenge: undefined;
   Kids12Reflection: undefined;
   Kids12WellbeingTracker: undefined;
   Kids12WeeklyPlanner: undefined;
@@ -485,6 +487,7 @@ export function AppNavigator() {
       <RootStack.Screen name="Kids12Today" component={Kids12Today} />
       <RootStack.Screen name="Kids12CheckIn" component={Kids12CheckIn} />
       <RootStack.Screen name="Kids12Movement" component={Kids12Movement} />
+      <RootStack.Screen name="Kids12Challenge" component={Kids12Challenge} />
       <RootStack.Screen name="Kids12Reflection" component={Kids12Reflection} />
       <RootStack.Screen
         name="Kids12WellbeingTracker"

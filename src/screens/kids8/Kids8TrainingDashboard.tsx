@@ -173,7 +173,9 @@ export function Kids8TrainingDashboard() {
   const [mealExplanation, setMealExplanation] =
     useState<KidsMealExplanation | null>(null);
   const [loadingMeal, setLoadingMeal] = useState(false);
-  const [todaysActivity, setTodaysActivity] = useState<DayActivity | null>(null);
+  const [todaysActivity, setTodaysActivity] = useState<DayActivity | null>(
+    null,
+  );
   const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
   const [exerciseExplanation, setExerciseExplanation] =
     useState<KidsExerciseExplanation | null>(null);
@@ -544,7 +546,9 @@ export function Kids8TrainingDashboard() {
                       </View>
                     )}
                     {!!mealExplanation.cheer && (
-                      <Text style={styles.planCheer}>{mealExplanation.cheer}</Text>
+                      <Text style={styles.planCheer}>
+                        {mealExplanation.cheer}
+                      </Text>
                     )}
                   </>
                 )}
@@ -579,7 +583,9 @@ export function Kids8TrainingDashboard() {
             >
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.planModalEmoji}>🤸</Text>
-                <Text style={styles.planModalTitle}>{todaysActivity?.name}</Text>
+                <Text style={styles.planModalTitle}>
+                  {todaysActivity?.name}
+                </Text>
                 {todaysActivity?.description ? (
                   <Text style={styles.planDesc}>
                     {todaysActivity.description}

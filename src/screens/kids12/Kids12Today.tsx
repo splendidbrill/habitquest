@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
@@ -122,6 +122,7 @@ export function Kids12Today() {
   const { showSpin, dismissSpin } = useDailySpin();
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
+  const [challengeDone, setChallengeDone] = useState(false);
 
   useEffect(() => {
     loadFamilyProfile().then(setProfile);
@@ -129,6 +130,16 @@ export function Kids12Today() {
       setCheckedInToday(v === new Date().toDateString());
     });
   }, []);
+
+  // Re-check challenge completion on focus (returning from the challenge screen
+  // must refresh the card without a remount).
+  useFocusEffect(
+    useCallback(() => {
+      storage.getItem('kids12ChallengeCompletedDate').then(v => {
+        setChallengeDone(v === new Date().toDateString());
+      });
+    }, []),
+  );
 
   // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
   useEffect(() => {
@@ -231,33 +242,47 @@ export function Kids12Today() {
             <Sparkles size={26} color={T.gold} />
           </LinearGradient>
 
-          {/* Today's Adventure — the daily Movement Quest */}
+          {/* Today's Challenge — the daily Movement Quest (tap to complete) */}
           <View style={styles.sectionHead}>
             <Text style={styles.sectionTitle}>Today's Challenge</Text>
-            <TouchableOpacity onPress={() => go('Kids12Movement')}>
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
+            {!challengeDone && (
+              <TouchableOpacity onPress={() => go('Kids12Challenge')}>
+                <Text style={styles.seeAll}>Open</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => go('Kids12Movement')}
-          >
-            <View style={styles.questCard}>
-              <Text style={styles.questEmoji}>{quest.emoji}</Text>
+          {challengeDone ? (
+            <View style={styles.doneCard}>
+              <Text style={styles.doneEmoji}>✅</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.questTitle}>{quest.title}</Text>
-                <Text style={styles.questSub} numberOfLines={2}>
-                  {quest.challenge}
+                <Text style={styles.doneTitle}>Challenge complete</Text>
+                <Text style={styles.doneSub}>
+                  Done for today — back tomorrow for the next one.
                 </Text>
-                <View style={styles.questMetaRow}>
-                  <Text style={styles.questMeta}>
-                    ⏱ {quest.durationMin} min
-                  </Text>
-                  <Text style={styles.questXp}>+{quest.xp} XP</Text>
-                </View>
               </View>
             </View>
-          </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => go('Kids12Challenge')}
+            >
+              <View style={styles.questCard}>
+                <Text style={styles.questEmoji}>{quest.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.questTitle}>{quest.title}</Text>
+                  <Text style={styles.questSub} numberOfLines={2}>
+                    {quest.challenge}
+                  </Text>
+                  <View style={styles.questMetaRow}>
+                    <Text style={styles.questMeta}>
+                      ⏱ {quest.durationMin} min
+                    </Text>
+                    <Text style={styles.questXp}>+{quest.xp} XP</Text>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* Personalised recommendations */}
           <RecommendedMissions isDark={true} />
@@ -432,6 +457,21 @@ const styles = StyleSheet.create({
   questMetaRow: { flexDirection: 'row', gap: 12, marginTop: 6 },
   questMeta: { fontSize: 12, fontWeight: '700', color: T.primary },
   questXp: { fontSize: 12, fontWeight: '800', color: T.pink },
+
+  doneCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(34,211,238,0.08)',
+    borderRadius: T.radius,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(34,211,238,0.3)',
+  },
+  doneEmoji: { fontSize: 34 },
+  doneTitle: { fontSize: 16, fontWeight: '800', color: T.foreground },
+  doneSub: { fontSize: 13, color: T.muted, lineHeight: 18, marginTop: 2 },
 
   groupTitle: {
     fontSize: 17,

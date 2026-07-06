@@ -185,7 +185,9 @@ export function KidsBuddyHome() {
   const [mealExplanation, setMealExplanation] =
     useState<KidsMealExplanation | null>(null);
   const [loadingMeal, setLoadingMeal] = useState(false);
-  const [todaysActivity, setTodaysActivity] = useState<DayActivity | null>(null);
+  const [todaysActivity, setTodaysActivity] = useState<DayActivity | null>(
+    null,
+  );
   const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
   const [exerciseExplanation, setExerciseExplanation] =
     useState<KidsExerciseExplanation | null>(null);
@@ -588,7 +590,9 @@ export function KidsBuddyHome() {
             >
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.mealModalEmoji}>🤸</Text>
-                <Text style={styles.mealModalTitle}>{todaysActivity?.name}</Text>
+                <Text style={styles.mealModalTitle}>
+                  {todaysActivity?.name}
+                </Text>
                 {todaysActivity?.description ? (
                   <Text style={styles.moveDesc}>
                     {todaysActivity.description}

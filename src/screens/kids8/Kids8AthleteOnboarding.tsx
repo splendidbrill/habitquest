@@ -1,167 +1,301 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView,
-  TextInput,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
-import { Trophy, Target, Zap, ChevronRight } from 'lucide-react-native';
+import { useChild } from '../../context/ChildContext';
+import { Lock } from 'lucide-react-native';
 
-const sports = [
-  { id: 'football', emoji: '⚽', name: 'Football' },
-  { id: 'cricket', emoji: '🏏', name: 'Cricket' },
-  { id: 'basketball', emoji: '🏀', name: 'Basketball' },
-  { id: 'running', emoji: '🏃', name: 'Running' },
-  { id: 'cycling', emoji: '🚴', name: 'Cycling' },
-  { id: 'swimming', emoji: '🏊', name: 'Swimming' },
+// ============================================================
+// "Build Your Quest Hero" — the 8–10 opening screen.
+//
+// Replaces the old "Welcome Athlete / enter your name" flow with an
+// adventure-hero character builder (Pokémon-trainer / light-Roblox vibe):
+// pick hero / hair / outfit / sidekick, watch the hero update instantly,
+// see the locked worlds + reward counters, then "Start My Adventure".
+// ============================================================
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+type Opt = { id: string; emoji: string; label: string };
+
+const GENDERS: Opt[] = [
+  { id: 'boy', emoji: '👦', label: 'Boy' },
+  { id: 'girl', emoji: '👧', label: 'Girl' },
+  { id: 'neutral', emoji: '🧒', label: 'Neutral' },
+];
+
+const HAIRS: { id: string; color: string; label: string }[] = [
+  { id: 'black', color: '#1F2937', label: 'Black' },
+  { id: 'brown', color: '#92400E', label: 'Brown' },
+  { id: 'blonde', color: '#FCD34D', label: 'Blonde' },
+  { id: 'red', color: '#EA580C', label: 'Red' },
+  { id: 'blue', color: '#3B82F6', label: 'Blue' },
+  { id: 'pink', color: '#EC4899', label: 'Pink' },
+];
+
+const OUTFITS: Opt[] = [
+  { id: 'explorer', emoji: '🧭', label: 'Explorer' },
+  { id: 'athlete', emoji: '🏅', label: 'Athlete' },
+  { id: 'adventurer', emoji: '🗺️', label: 'Adventurer' },
+  { id: 'scientist', emoji: '🔬', label: 'Scientist' },
+  { id: 'ninja', emoji: '🥷', label: 'Ninja' },
+  { id: 'football', emoji: '⚽', label: 'Football Star' },
+];
+
+const SIDEKICKS: Opt[] = [
+  { id: 'fox', emoji: '🦊', label: 'Fox' },
+  { id: 'dragon', emoji: '🐉', label: 'Dragon' },
+  { id: 'dog', emoji: '🐶', label: 'Dog' },
+  { id: 'panda', emoji: '🐼', label: 'Panda' },
+  { id: 'owl', emoji: '🦉', label: 'Owl' },
+  { id: 'robot', emoji: '🤖', label: 'Robot' },
+];
+
+const WORLDS = [
+  { emoji: '🥕', label: 'Nutrition Forest', unlocked: true },
+  { emoji: '⚽', label: 'Activity Arena', unlocked: false },
+  { emoji: '😴', label: 'Sleep Mountain', unlocked: false },
+  { emoji: '🧠', label: 'Confidence Castle', unlocked: false },
+];
+
+const REWARD_TEASERS = [
+  '124 rewards to discover',
+  '52 badges to unlock',
+  '4 worlds to explore',
 ];
 
 export function Kids8AthleteOnboarding() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
-  const [sport, setSport] = useState('');
+  const navigation = useNavigation<Nav>();
+  const { activeChild } = useChild();
+
+  const [gender, setGender] = useState('neutral');
+  const [hair, setHair] = useState('black');
+  const [outfit, setOutfit] = useState('explorer');
+  const [sidekick, setSidekick] = useState('fox');
+
+  const genderEmoji = GENDERS.find(g => g.id === gender)?.emoji ?? '🧒';
+  const hairColor = HAIRS.find(h => h.id === hair)?.color ?? '#1F2937';
+  const outfitData = OUTFITS.find(o => o.id === outfit) ?? OUTFITS[0];
+  const sidekickEmoji = SIDEKICKS.find(s => s.id === sidekick)?.emoji ?? '🦊';
+
+  // Floating hero + glowing start button.
+  const floatY = useRef(new Animated.Value(0)).current;
+  const glow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatY, {
+          toValue: -10,
+          duration: 1100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatY, {
+          toValue: 0,
+          duration: 1100,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glow, {
+          toValue: 0,
+          duration: 900,
+          useNativeDriver: false,
+        }),
+      ]),
+    ).start();
+  }, [floatY, glow]);
+
+  const glowRadius = glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [8, 22],
+  });
 
   const handleStart = async () => {
-    if (name && sport) {
-      await storage.setItem('kids8UserName', name);
-      await storage.setItem('kids8UserSport', sport);
-      await storage.setItem('kids8FamilyPoints', '0');
-      await storage.setItem('kids8CurrentStreak', '1');
-      await storage.setItem('kids8LastActiveDate', new Date().toDateString());
-      navigation.navigate('Kids8TrainingDashboard');
-    }
+    await storage.setItem(
+      'kids8Hero',
+      JSON.stringify({ gender, hair, outfit, sidekick }),
+    );
+    // Keep the greeting on later screens working now the name step is gone —
+    // the child's name already exists on their profile.
+    await storage.setItem('kids8UserName', activeChild?.name ?? 'Explorer');
+    await storage.setItem('kids8UserSport', outfit);
+    await storage.setItem('kids8FamilyPoints', '0');
+    await storage.setItem('kids8CurrentStreak', '1');
+    await storage.setItem('kids8LastActiveDate', new Date().toDateString());
+    navigation.navigate('Kids8TrainingDashboard');
   };
 
-  if (step === 1) {
-    return (
-      <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
-        <SafeAreaView style={styles.safe}>
-          <ScrollView contentContainerStyle={styles.centerContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.heroEmoji}>🏆</Text>
-            <Text style={styles.title}>Welcome, Athlete!</Text>
-            <Text style={styles.subtitle}>
-              Ready to train like a pro? This is your personal sports performance tracker!
-            </Text>
-
-            <View style={styles.card}>
-              <View style={styles.featureRow}>
-                <Target size={24} color="#A78BFA" />
-                <View style={styles.featureText}>
-                  <Text style={styles.featureTitle}>Daily Missions</Text>
-                  <Text style={styles.featureDesc}>Complete training challenges every day</Text>
-                </View>
-              </View>
-              <View style={styles.featureRow}>
-                <Zap size={24} color="#facc15" />
-                <View style={styles.featureText}>
-                  <Text style={styles.featureTitle}>Fuel Like a Pro</Text>
-                  <Text style={styles.featureDesc}>Learn what athletes eat to perform their best</Text>
-                </View>
-              </View>
-              <View style={styles.featureRow}>
-                <Trophy size={24} color="#c084fc" />
-                <View style={styles.featureText}>
-                  <Text style={styles.featureTitle}>Earn Achievements</Text>
-                  <Text style={styles.featureDesc}>Unlock badges and level up your status</Text>
-                </View>
-              </View>
+  const renderOptions = (
+    items: Opt[],
+    selected: string,
+    onSelect: (id: string) => void,
+  ) => (
+    <View style={styles.optGrid}>
+      {items.map(o => {
+        const isSel = o.id === selected;
+        return (
+          <TouchableOpacity
+            key={o.id}
+            activeOpacity={0.85}
+            onPress={() => onSelect(o.id)}
+            style={styles.optWrap}
+          >
+            <View style={[styles.optCard, isSel && styles.optCardSel]}>
+              <Text style={styles.optEmoji}>{o.emoji}</Text>
+              <Text style={[styles.optLabel, isSel && styles.optLabelSel]}>
+                {o.label}
+              </Text>
             </View>
-
-            <TouchableOpacity activeOpacity={0.85} onPress={() => setStep(2)} style={styles.btnWrap}>
-              <LinearGradient colors={['#8B5CF6', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btn}>
-                <Text style={styles.btnText}>Let's Start! </Text>
-                <ChevronRight size={22} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
-
-  if (step === 2) {
-    return (
-      <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
-        <SafeAreaView style={styles.safe}>
-          <ScrollView contentContainerStyle={styles.centerContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.heroEmoji}>👋</Text>
-            <Text style={styles.title}>What's your name?</Text>
-            <Text style={styles.subtitle}>We'll use this to personalize your training</Text>
-
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              style={styles.input}
-            />
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => name && setStep(3)}
-              disabled={!name}
-              style={styles.btnWrap}
-            >
-              <LinearGradient
-                colors={name ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={styles.btn}
-              >
-                <Text style={[styles.btnText, !name && styles.btnTextDisabled]}>Continue</Text>
-                <ChevronRight size={22} color={name ? '#fff' : 'rgba(255,255,255,0.4)'} />
-              </LinearGradient>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   return (
-    <LinearGradient colors={['#2D1B4E', '#1e3a8a', '#2D1B4E']} style={styles.container}>
+    <LinearGradient
+      colors={['#2D1B4E', '#1E3A8A', '#312E81']}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.heroEmoji, { textAlign: 'center' }]}>⚽</Text>
-          <Text style={[styles.title, { textAlign: 'center' }]}>What's your favorite sport?</Text>
-          <Text style={[styles.subtitle, { textAlign: 'center' }]}>We'll tailor your training to your goals</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Title */}
+          <Text style={styles.kicker}>WELCOME TO</Text>
+          <Text style={styles.title}>Habit Quest</Text>
+          <Text style={styles.subtitle}>
+            Build your hero.{'\n'}Complete quests.{'\n'}Unlock new worlds.
+          </Text>
 
-          <View style={styles.sportsGrid}>
-            {sports.map(s => (
-              <TouchableOpacity
-                key={s.id}
-                activeOpacity={0.85}
-                onPress={() => setSport(s.id)}
-                style={styles.sportBtnWrap}
-              >
-                <LinearGradient
-                  colors={sport === s.id ? ['#8B5CF6', '#EC4899'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
-                  style={styles.sportBtn}
+          {/* Hero preview standing on the pathway */}
+          <Animated.View
+            style={[styles.heroStage, { transform: [{ translateY: floatY }] }]}
+          >
+            <LinearGradient
+              colors={['#8B5CF6', '#EC4899']}
+              style={[styles.heroRing, { borderColor: hairColor }]}
+            >
+              <Text style={styles.heroEmoji}>{genderEmoji}</Text>
+              <View style={styles.outfitBadge}>
+                <Text style={styles.badgeEmoji}>{outfitData.emoji}</Text>
+              </View>
+              <View style={styles.sidekickBadge}>
+                <Text style={styles.badgeEmoji}>{sidekickEmoji}</Text>
+              </View>
+            </LinearGradient>
+            <View style={styles.pathway} />
+            <Text style={styles.levelText}>Level 1 {outfitData.label}</Text>
+            <Text style={styles.levelSub}>Ready for your first quest.</Text>
+          </Animated.View>
+
+          {/* Locked worlds map */}
+          <View style={styles.worldsRow}>
+            {WORLDS.map(w => (
+              <View key={w.label} style={styles.worldItem}>
+                <View
+                  style={[
+                    styles.worldOrb,
+                    !w.unlocked && styles.worldOrbLocked,
+                  ]}
                 >
-                  <Text style={styles.sportEmoji}>{s.emoji}</Text>
-                  <Text style={styles.sportName}>{s.name}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <Text style={styles.worldEmoji}>
+                    {w.unlocked ? w.emoji : '☁️'}
+                  </Text>
+                </View>
+                <Text style={styles.worldLabel} numberOfLines={2}>
+                  {w.unlocked ? w.label : 'Locked'}
+                </Text>
+              </View>
             ))}
           </View>
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleStart}
-            disabled={!sport}
-            style={styles.btnWrap}
+          {/* Selectors */}
+          <Text style={styles.sectionTitle}>Choose Your Hero</Text>
+          {renderOptions(GENDERS, gender, setGender)}
+
+          <Text style={styles.sectionTitle}>Choose Hair</Text>
+          <View style={styles.optGrid}>
+            {HAIRS.map(h => {
+              const isSel = h.id === hair;
+              return (
+                <TouchableOpacity
+                  key={h.id}
+                  activeOpacity={0.85}
+                  onPress={() => setHair(h.id)}
+                  style={styles.hairWrap}
+                >
+                  <View
+                    style={[
+                      styles.hairSwatch,
+                      { backgroundColor: h.color },
+                      isSel && styles.hairSwatchSel,
+                    ]}
+                  />
+                  <Text style={[styles.optLabel, isSel && styles.optLabelSel]}>
+                    {h.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={styles.sectionTitle}>Choose Outfit</Text>
+          {renderOptions(OUTFITS, outfit, setOutfit)}
+
+          <Text style={styles.sectionTitle}>Choose Sidekick</Text>
+          {renderOptions(SIDEKICKS, sidekick, setSidekick)}
+
+          {/* Reward anticipation */}
+          <View style={styles.rewardsCard}>
+            {REWARD_TEASERS.map(t => (
+              <View key={t} style={styles.rewardRow}>
+                <Lock size={16} color="#FCD34D" />
+                <Text style={styles.rewardText}>{t}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Start button (glows) */}
+          <Animated.View
+            style={{
+              shadowColor: '#FCD34D',
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.9,
+              shadowRadius: glowRadius,
+              elevation: 12,
+            }}
           >
-            <LinearGradient
-              colors={sport ? ['#16a34a', '#059669'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.btn}
-            >
-              <Text style={[styles.btnText, !sport && styles.btnTextDisabled]}>Start Training! 💪</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.9} onPress={handleStart}>
+              <LinearGradient
+                colors={['#F59E0B', '#EC4899', '#8B5CF6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.startBtn}
+              >
+                <Text style={styles.startText}>Start My Adventure ⚔️</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -171,60 +305,183 @@ export function Kids8AthleteOnboarding() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  content: { padding: 24, paddingBottom: 40 },
-  centerContent: { padding: 24, paddingBottom: 40, alignItems: 'center' },
-  heroEmoji: { fontSize: 80, marginBottom: 16, textAlign: 'center' },
-  title: { fontSize: 28, fontWeight: '800', color: '#ffffff', marginBottom: 12, textAlign: 'center' },
-  subtitle: { fontSize: 17, color: '#DDD6FE', marginBottom: 28, textAlign: 'center', lineHeight: 24 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    width: '100%',
+  content: { padding: 24, paddingBottom: 44, alignItems: 'center' },
+
+  kicker: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#A78BFA',
+    letterSpacing: 3,
+    marginTop: 8,
   },
-  featureRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16, gap: 12 },
-  featureText: { flex: 1 },
-  featureTitle: { fontSize: 16, fontWeight: '700', color: '#ffffff', marginBottom: 2 },
-  featureDesc: { fontSize: 13, color: '#DDD6FE' },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  title: {
+    fontSize: 38,
+    fontWeight: '900',
     color: '#fff',
-    borderRadius: 50,
-    padding: 16,
-    fontSize: 18,
-    textAlign: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-    marginBottom: 24,
-    width: '100%',
+    marginTop: 2,
+    textShadowColor: 'rgba(236,72,153,0.6)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
   },
-  btnWrap: { width: '100%' },
-  btn: {
-    borderRadius: 50,
-    paddingVertical: 18,
+  subtitle: {
+    fontSize: 16,
+    color: '#DDD6FE',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginTop: 10,
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+
+  heroStage: { alignItems: 'center', marginVertical: 10 },
+  heroRing: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    borderWidth: 5,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  btnText: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  btnTextDisabled: { color: 'rgba(255,255,255,0.4)' },
-  sportsGrid: {
+  heroEmoji: { fontSize: 88 },
+  outfitBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sidekickBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeEmoji: { fontSize: 26 },
+  pathway: {
+    width: 120,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(252,211,77,0.35)',
+    marginTop: 10,
+  },
+  levelText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FCD34D',
+    marginTop: 12,
+  },
+  levelSub: { fontSize: 13, color: '#DDD6FE', marginTop: 2 },
+
+  worldsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginVertical: 18,
+  },
+  worldItem: { alignItems: 'center', width: '23%' },
+  worldOrb: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(139,92,246,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(252,211,77,0.6)',
+  },
+  worldOrbLocked: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  worldEmoji: { fontSize: 26 },
+  worldLabel: {
+    fontSize: 11,
+    color: '#DDD6FE',
+    textAlign: 'center',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
+    alignSelf: 'flex-start',
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  optGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 10,
+    width: '100%',
+  },
+  optWrap: { width: '31%' },
+  optCard: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  optCardSel: {
+    backgroundColor: 'rgba(236,72,153,0.25)',
+    borderColor: '#FCD34D',
+  },
+  optEmoji: { fontSize: 34, marginBottom: 4 },
+  optLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DDD6FE',
+    textAlign: 'center',
+  },
+  optLabelSel: { color: '#fff' },
+
+  hairWrap: { width: '31%', alignItems: 'center', gap: 6 },
+  hairSwatch: {
+    width: '100%',
+    height: 46,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  hairSwatchSel: { borderColor: '#FCD34D', borderWidth: 4 },
+
+  rewardsCard: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+    marginTop: 24,
+    marginBottom: 22,
     gap: 12,
-    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(252,211,77,0.3)',
+  },
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rewardText: { fontSize: 15, fontWeight: '700', color: '#FEF3C7' },
+
+  startBtn: {
+    borderRadius: 50,
+    paddingVertical: 20,
+    paddingHorizontal: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  sportBtnWrap: { width: '46%' },
-  sportBtn: {
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-  },
-  sportEmoji: { fontSize: 44, marginBottom: 8 },
-  sportName: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
+  startText: { fontSize: 19, fontWeight: '900', color: '#fff' },
 });

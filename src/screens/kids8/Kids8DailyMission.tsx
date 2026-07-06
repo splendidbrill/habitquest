@@ -51,7 +51,10 @@ export function Kids8DailyMission() {
     );
     await storage.setItem('kids8LastUnlock', `${quest.title} complete`);
     // Mark done for today so the card + this screen lock until tomorrow.
-    await storage.setItem('kids8MissionCompletedDate', new Date().toDateString());
+    await storage.setItem(
+      'kids8MissionCompletedDate',
+      new Date().toDateString(),
+    );
     setAlreadyDone(true);
     // Kids8SuccessCelebration updates the streak + parent Progress (Phase A.3).
     navigation.navigate('Kids8SuccessCelebration');
