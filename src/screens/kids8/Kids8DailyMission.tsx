@@ -17,7 +17,9 @@ import {
   loadFamilyProfile,
   type FamilyProfile,
 } from '../../data/familyProfile';
+import { useRoute, type RouteProp } from '@react-navigation/native';
 import {
+  movementQuests,
   selectDailyMovementQuest,
   type MovementQuest,
 } from '../../data/movementQuests';
@@ -38,9 +40,13 @@ export function Kids8DailyMission() {
     });
   }, []);
 
-  // The SAME daily Movement Quest the home hub shows for this age band, so the
-  // "Today's Adventure" card and this screen always agree (C.2).
-  const quest: MovementQuest = selectDailyMovementQuest('8-10', profile);
+  // Show exactly the quest the home card passed (by id); fall back to the
+  // deterministic daily pick so "See all" / direct opens still work.
+  const route = useRoute<RouteProp<RootStackParamList, 'Kids8DailyMission'>>();
+  const questId = route.params?.questId;
+  const quest: MovementQuest =
+    (questId ? movementQuests.find(q => q.id === questId) : undefined) ??
+    selectDailyMovementQuest('8-10', profile);
 
   const handleComplete = async () => {
     if (alreadyDone) return;

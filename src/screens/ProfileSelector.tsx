@@ -7,9 +7,10 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Plus, LogOut, Key } from 'lucide-react-native';
+import { Plus, LogOut, Key, Trash2 } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation';
@@ -48,7 +49,8 @@ const AGE_HOME_SCREEN: Record<string, keyof RootStackParamList> = {
 export function ProfileSelector() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
+  const [deleting, setDeleting] = useState(false);
   const { setActiveChild } = useChild();
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,10 +98,34 @@ export function ProfileSelector() {
     navigation.navigate(target as any);
   };
 
-  if (loading) {
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      "This permanently deletes your account and ALL your family's data — every child profile, plan, and progress record. This cannot be undone.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await deleteAccount();
+            setDeleting(false);
+            if (error) {
+              Alert.alert('Something went wrong', error);
+            }
+            // On success the SIGNED_OUT auth change returns the app to sign-in.
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading || deleting) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#f97316" />
+        {deleting && <Text style={styles.deletingText}>Deleting account…</Text>}
       </View>
     );
   }
@@ -176,6 +202,15 @@ export function ProfileSelector() {
               <Text style={styles.iconBtnText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Account deletion (required by Google Play). */}
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={handleDeleteAccount}
+          >
+            <Trash2 size={16} color="#dc2626" />
+            <Text style={styles.deleteBtnText}>Delete my account</Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -248,4 +283,14 @@ const styles = StyleSheet.create({
   },
   iconBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   iconBtnText: { fontSize: 14, color: '#6b7280' },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 24,
+    paddingVertical: 10,
+  },
+  deleteBtnText: { fontSize: 13, color: '#dc2626', fontWeight: '600' },
+  deletingText: { marginTop: 12, fontSize: 14, color: '#6b7280' },
 });

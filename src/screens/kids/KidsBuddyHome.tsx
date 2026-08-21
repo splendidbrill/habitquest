@@ -21,6 +21,9 @@ import {
   getBuddyMood,
   checkAndGrantWeeklyFreeze,
   loadFreezeStatus,
+  getRevivalStatus,
+  reviveStreak,
+  checkAndNotifyRevivalEligible,
 } from '../../services/streakService';
 import { RecommendedMissions } from '../../components/RecommendedMissions';
 import { DailySpin, useDailySpin } from '../../components/DailySpin';
@@ -31,6 +34,7 @@ import {
 } from '../../data/familyProfile';
 import {
   selectDailyMovementQuest,
+  movementQuests,
   type MovementQuest,
 } from '../../data/movementQuests';
 import {
@@ -192,6 +196,9 @@ export function KidsBuddyHome() {
   const [exerciseExplanation, setExerciseExplanation] =
     useState<KidsExerciseExplanation | null>(null);
   const [loadingExercise, setLoadingExercise] = useState(false);
+  const [revivalEligible, setRevivalEligible] = useState(false);
+  const [revivals, setRevivals] = useState(0);
+  const [reviving, setReviving] = useState(false);
 
   // Phase A.2: reaching home means avatar creation is done — flag it so
   // ProfileSelector skips the avatar flow next time.
@@ -223,6 +230,11 @@ export function KidsBuddyHome() {
       loadFreezeStatus(activeChild.id).then(s =>
         setFreezesAvailable(s.freezesAvailable),
       );
+      getRevivalStatus(activeChild.id).then(s => {
+        setRevivalEligible(s.eligible);
+        setRevivals(s.revivals_remaining);
+      });
+      checkAndNotifyRevivalEligible(activeChild.id);
     }
   }, [activeChild?.id]);
 
@@ -254,6 +266,13 @@ export function KidsBuddyHome() {
 
   const quest: MovementQuest = selectDailyMovementQuest('6-8', profile);
 
+  // The plan activity's name is a Movement Quest title (localPlanBuilder), so we
+  // can look the full quest up to show the Excel-sheet how-to (warm up / do it /
+  // cool down + a coaching tip for this age).
+  const moveQuest: MovementQuest | undefined = todaysActivity
+    ? movementQuests.find(q => q.title === todaysActivity.name)
+    : undefined;
+
   const go = (screen: keyof RootStackParamList) =>
     navigation.navigate(screen as never);
 
@@ -277,6 +296,21 @@ export function KidsBuddyHome() {
       setExerciseExplanation(ex);
       setLoadingExercise(false);
     }
+  };
+
+  const handleReviveStreak = async () => {
+    if (!activeChild?.id || reviving) return;
+    setReviving(true);
+    const { success } = await reviveStreak(activeChild.id);
+    if (success) {
+      setRevivalEligible(false);
+      setRevivals(Math.max(0, revivals - 1));
+      // Refresh child data
+      const status = await getRevivalStatus(activeChild.id);
+      setRevivalEligible(status.eligible);
+      setRevivals(status.revivals_remaining);
+    }
+    setReviving(false);
   };
 
   const renderTiles = (tiles: Tile[]) => (
@@ -344,6 +378,33 @@ export function KidsBuddyHome() {
             </View>
           )}
 
+          {revivalEligible && revivals > 0 && (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={handleReviveStreak}
+              disabled={reviving}
+            >
+              <LinearGradient
+                colors={['#f59e0b', '#d97706']}
+                style={styles.revivalCard}
+              >
+                <Text style={styles.revivalEmoji}>
+                  {reviving ? '⏳' : '🔥'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.revivalTitle}>Revive Your Streak!</Text>
+                  <Text style={styles.revivalSub}>
+                    You can bring it back — tap to restore
+                  </Text>
+                </View>
+                {!reviving && (
+                  <Text style={styles.revivalBadge}>×{revivals}</Text>
+                )}
+                {reviving && <ActivityIndicator color="#fff" />}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* Animated buddy */}
           <Animated.View style={{ transform: [{ translateY: floatY }] }}>
             <LinearGradient
@@ -374,7 +435,9 @@ export function KidsBuddyHome() {
           {!missionDone ? (
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => go('KidsDailyMission')}
+              onPress={() =>
+                navigation.navigate('KidsDailyMission', { questId: quest.id })
+              }
             >
               <View style={styles.questCard}>
                 <Text style={styles.questEmoji}>{quest.emoji}</Text>
@@ -599,6 +662,34 @@ export function KidsBuddyHome() {
                   </Text>
                 ) : null}
 
+                {/* How to do it — real steps from the activity sheet */}
+                {moveQuest && (
+                  <View style={styles.howToBox}>
+                    <Text style={styles.mealBoxTitle}>🏃 How to do it</Text>
+                    {moveQuest.warmUp ? (
+                      <Text style={styles.howToStep}>
+                        <Text style={styles.howToNum}>Warm up · </Text>
+                        {moveQuest.warmUp}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.howToStep}>
+                      <Text style={styles.howToNum}>Do it · </Text>
+                      {moveQuest.mainDrill ?? moveQuest.challenge}
+                    </Text>
+                    {moveQuest.coolDown ? (
+                      <Text style={styles.howToStep}>
+                        <Text style={styles.howToNum}>Cool down · </Text>
+                        {moveQuest.coolDown}
+                      </Text>
+                    ) : null}
+                    {moveQuest.coachingTips?.age6to8 ? (
+                      <Text style={styles.howToTip}>
+                        💡 {moveQuest.coachingTips.age6to8}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+
                 {loadingExercise || !exerciseExplanation ? (
                   <View style={styles.mealLoading}>
                     <ActivityIndicator size="large" color={T.accent} />
@@ -713,6 +804,32 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   freezeText: { fontSize: 13, fontWeight: '700', color: '#0369A1' },
+
+  revivalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderRadius: T.radius,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  revivalEmoji: { fontSize: 44 },
+  revivalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  revivalSub: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  revivalBadge: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fff',
+  },
 
   buddyCard: {
     flexDirection: 'row',
@@ -891,6 +1008,26 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
+  },
+  howToBox: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  howToStep: {
+    fontSize: 15,
+    color: '#14532D',
+    lineHeight: 22,
+    marginBottom: 6,
+  },
+  howToNum: { fontWeight: '800', color: '#15803D' },
+  howToTip: {
+    fontSize: 14,
+    color: '#166534',
+    lineHeight: 20,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   mealFactBox: {
     backgroundColor: '#E0F2FE',

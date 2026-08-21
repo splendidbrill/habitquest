@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -45,7 +46,11 @@ import {
   type MealReaction,
   type ActivityReaction,
 } from '../services/feedbackService';
-import { type DayPlan, FALLBACK_PLAN } from '../services/weeklyPlanStore';
+import {
+  type DayPlan,
+  FALLBACK_PLAN,
+  todayName,
+} from '../services/weeklyPlanStore';
 import {
   getHealthierInfo,
   getRecipe,
@@ -53,7 +58,7 @@ import {
   NUTRITION_DOT,
 } from '../services/healthierMeal';
 import {
-  selectDailyMovementQuest,
+  movementQuests,
   MOVEMENT_INSPIRATION,
   ageToBand,
   type MovementQuest,
@@ -133,6 +138,7 @@ export function WeeklyPlan() {
   );
   // "Want extra inspiration?" links toggle.
   const [inspoOpen, setInspoOpen] = useState(false);
+  const [missionModalOpen, setMissionModalOpen] = useState(false);
   // One-tap reaction state, keyed `${day}:meal` / `${day}:activity`.
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   // "Why am I seeing this?" expand state, same key scheme.
@@ -312,6 +318,20 @@ export function WeeklyPlan() {
     );
   }
 
+  // Today's mission = today's plan activity (SAME name the Home tab shows). The
+  // plan activity is built from a Movement Quest (localPlanBuilder), so we can
+  // look the full quest back up by title to surface real how-to guidance.
+  const todaysActivity =
+    plan.find(d => d.day === todayName())?.activity ?? plan[0]?.activity;
+  const band = activeChild?.age_group ?? ageToBand(familyProfile?.childAge);
+  const todaysQuest: MovementQuest | undefined = todaysActivity
+    ? movementQuests.find(q => q.title === todaysActivity.name)
+    : undefined;
+  const coachTip =
+    todaysQuest?.coachingTips?.[
+      band === '6-8' ? 'age6to8' : band === '10-12' ? 'age10to12' : 'age8to10'
+    ];
+
   return (
     <ScrollView
       style={s.screen}
@@ -344,91 +364,168 @@ export function WeeklyPlan() {
         </View>
       )}
 
-      {/* Today's Movement Quest — same quest the child sees (shared library) */}
-      {(() => {
-        const band =
-          activeChild?.age_group ?? ageToBand(familyProfile?.childAge);
-        const quest: MovementQuest = selectDailyMovementQuest(
-          band,
-          familyProfile,
-        );
-        return (
-          <View style={s.questCard}>
-            <View style={s.questHeader}>
-              <Text style={s.questEmoji}>{quest.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={s.questKicker}>TODAY'S MOVEMENT QUEST</Text>
-                <Text style={s.questTitle}>{quest.title}</Text>
-              </View>
-              <View style={s.questXp}>
-                <Text style={s.questXpText}>+{quest.xp} XP</Text>
-              </View>
+      {/* Today's Mission — tap for step-by-step guidance on how to do it.
+          Same activity the Home tab shows (single source of truth). */}
+      {todaysActivity ? (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setMissionModalOpen(true)}
+          style={s.questCard}
+        >
+          <View style={s.questHeader}>
+            <Text style={s.questEmoji}>{todaysQuest?.emoji ?? '🏃'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.questKicker}>TODAY'S MISSION</Text>
+              <Text style={s.questTitle}>{todaysActivity.name}</Text>
             </View>
-
-            <View style={s.questThemeRow}>
-              <Text style={s.questThemePill}>🎬 {quest.theme}</Text>
-              <Text style={s.questThemePill}>⏱ {quest.durationMin} min</Text>
-            </View>
-
-            <Text style={s.questChallenge}>{quest.challenge}</Text>
-
-            <View style={s.questMetaRow}>
-              <Text style={s.questMetaLabel}>🎒 Kit: </Text>
-              <Text style={s.questMetaValue}>{quest.equipment}</Text>
-            </View>
-            <View style={s.questMetaRow}>
-              <Text style={s.questMetaLabel}>💪 Builds: </Text>
-              <Text style={s.questMetaValue}>{quest.skills.join(', ')}</Text>
-            </View>
-
-            {quest.upgrade ? (
-              <View style={s.questUpgrade}>
-                <Text style={s.questUpgradeText}>
-                  ⤴ Level up: {quest.upgrade}
-                </Text>
-              </View>
-            ) : null}
-
-            <Text style={s.questWhy}>💡 {quest.whyMatters}</Text>
-
-            {/* Want extra inspiration? */}
-            <TouchableOpacity
-              onPress={() => setInspoOpen(o => !o)}
-              style={s.inspoToggle}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Text style={s.inspoToggleText}>Want extra inspiration?</Text>
-              {inspoOpen ? (
-                <ChevronUp size={14} color="#f97316" />
-              ) : (
-                <ChevronDown size={14} color="#f97316" />
-              )}
-            </TouchableOpacity>
-            {inspoOpen && (
-              <View style={s.inspoList}>
-                {MOVEMENT_INSPIRATION.map(link => (
-                  <TouchableOpacity
-                    key={link.url}
-                    onPress={() => Linking.openURL(link.url)}
-                    style={s.inspoLink}
-                  >
-                    <Text style={s.inspoLinkText}>↗ {link.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            <ChevronRight size={20} color="#f97316" />
           </View>
-        );
-      })()}
+
+          <View style={s.questThemeRow}>
+            {todaysActivity.duration ? (
+              <Text style={s.questThemePill}>⏱ {todaysActivity.duration}</Text>
+            ) : null}
+            {todaysQuest ? (
+              <Text style={s.questThemePill}>+{todaysQuest.xp} XP</Text>
+            ) : null}
+          </View>
+
+          <Text style={s.questChallenge} numberOfLines={2}>
+            {todaysQuest?.challenge ?? todaysActivity.description}
+          </Text>
+
+          <View style={s.missionCta}>
+            <Text style={s.missionCtaText}>Tap for how to do it →</Text>
+          </View>
+        </TouchableOpacity>
+      ) : null}
+
+      {/* How-to guidance modal for today's mission */}
+      <Modal
+        visible={missionModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMissionModalOpen(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={s.modalHeaderRow}>
+              <Text style={s.modalEmoji}>{todaysQuest?.emoji ?? '🏃'}</Text>
+              <Text style={s.modalTitle} numberOfLines={2}>
+                {todaysActivity?.name}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setMissionModalOpen(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={s.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 12 }}
+            >
+              {/* Quick facts */}
+              <View style={s.questThemeRow}>
+                {todaysActivity?.duration ? (
+                  <Text style={s.questThemePill}>
+                    ⏱ {todaysActivity.duration}
+                  </Text>
+                ) : null}
+                {todaysQuest?.equipment ? (
+                  <Text style={s.questThemePill}>
+                    🎒 {todaysQuest.equipment}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* What to do */}
+              <Text style={s.guideLabel}>What to do</Text>
+              <Text style={s.guideText}>
+                {todaysQuest?.challenge ?? todaysActivity?.description}
+              </Text>
+
+              {/* Step-by-step how-to */}
+              {todaysQuest?.warmUp ? (
+                <>
+                  <Text style={s.guideLabel}>1 · Warm up</Text>
+                  <Text style={s.guideText}>{todaysQuest.warmUp}</Text>
+                </>
+              ) : null}
+              {todaysQuest?.mainDrill ? (
+                <>
+                  <Text style={s.guideLabel}>
+                    {todaysQuest.warmUp ? '2 · Main activity' : 'How to do it'}
+                  </Text>
+                  <Text style={s.guideText}>{todaysQuest.mainDrill}</Text>
+                </>
+              ) : null}
+              {todaysQuest?.coolDown ? (
+                <>
+                  <Text style={s.guideLabel}>3 · Cool down</Text>
+                  <Text style={s.guideText}>{todaysQuest.coolDown}</Text>
+                </>
+              ) : null}
+
+              {/* Coaching tip for this age */}
+              {coachTip ? (
+                <View style={s.guideTipBox}>
+                  <Text style={s.guideTipTitle}>💡 Coaching tip</Text>
+                  <Text style={s.guideTipText}>{coachTip}</Text>
+                </View>
+              ) : null}
+
+              {/* Safety */}
+              {todaysQuest?.safety ? (
+                <View style={s.guideSafetyBox}>
+                  <Text style={s.guideTipTitle}>🛟 Keep it safe</Text>
+                  <Text style={s.guideTipText}>{todaysQuest.safety}</Text>
+                </View>
+              ) : null}
+
+              {/* Why it matters */}
+              {(todaysQuest?.whyMatters || todaysActivity?.description) && (
+                <>
+                  <Text style={s.guideLabel}>Why it matters</Text>
+                  <Text style={s.guideText}>
+                    {todaysQuest?.whyMatters ?? todaysActivity?.description}
+                  </Text>
+                </>
+              )}
+
+              {/* Extra inspiration links */}
+              <Text style={s.guideLabel}>Want extra inspiration?</Text>
+              {MOVEMENT_INSPIRATION.map(link => (
+                <TouchableOpacity
+                  key={link.url}
+                  onPress={() => Linking.openURL(link.url)}
+                  style={s.inspoLink}
+                >
+                  <Text style={s.inspoLinkText}>↗ {link.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={s.modalDoneBtn}
+              onPress={() => setMissionModalOpen(false)}
+            >
+              <Text style={s.modalDoneText}>Got it 👍</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Day cards */}
       {plan.map((day, i) => {
         const isExpanded = expanded === day.day;
         const pillarColor =
           PILLAR_COLORS[day.activity?.pillar] ?? colors.primary;
-        const isToday =
-          new Date().getDay() === (i + 1) % 7 ||
-          (i === 6 && new Date().getDay() === 0);
+        // Match "today" by weekday name — the SAME rule getTodaysPlan() uses on
+        // the Home tab — so both tabs land on the same day (index-based matching
+        // drifted when the plan wasn't Monday-first).
+        const isToday = day.day === todayName();
         // Deterministic, static healthier-meal content (Phase C.1).
         const healthier = getHealthierInfo({
           name: day.meal?.name ?? '',
@@ -1189,8 +1286,79 @@ const s = StyleSheet.create({
   },
   inspoToggleText: { fontSize: 12, fontWeight: '800', color: '#f97316' },
   inspoList: { marginTop: 8, gap: 8 },
-  inspoLink: { paddingVertical: 2 },
+  inspoLink: { paddingVertical: 4 },
   inspoLinkText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
+
+  missionCta: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: '#fff7ed',
+    borderRadius: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  missionCtaText: { fontSize: 13, fontWeight: '800', color: '#c2410c' },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 22,
+    maxHeight: '88%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  modalEmoji: { fontSize: 32 },
+  modalTitle: { flex: 1, fontSize: 20, fontWeight: '800', color: '#111827' },
+  modalClose: { fontSize: 20, fontWeight: '700', color: '#6b7280', padding: 4 },
+  guideLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#f97316',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  guideText: { fontSize: 15, color: '#374151', lineHeight: 22 },
+  guideTipBox: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+  },
+  guideSafetyBox: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 12,
+  },
+  guideTipTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  guideTipText: { fontSize: 14, color: '#374151', lineHeight: 20 },
+  modalDoneBtn: {
+    backgroundColor: '#f97316',
+    borderRadius: 50,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  modalDoneText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 
   supportCard: {
     backgroundColor: '#fff',

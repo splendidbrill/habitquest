@@ -9,67 +9,34 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
-import catalogMissions from '../../data/missionCatalog';
+import {
+  movementQuests,
+  selectDailyMovementQuest,
+} from '../../data/movementQuests';
 
-// This screen's local missions predate the catalog and carry no catalog id,
-// so recover the real CatalogMission (→ tags) by title. Local titles append an
-// emoji ("Jump Like 5 Animals! 🦘"); the catalog title is the emoji-free prefix.
-function matchCatalog(localTitle: string) {
-  return catalogMissions.find(m => localTitle.startsWith(m.title));
-}
-
-const missions = [
-  {
-    id: 'jump-animals',
-    title: 'Jump Like 5 Animals! 🦘',
-    emoji: '🦘',
-    description: 'Jump like a kangaroo, frog, bunny, monkey, and tiger!',
-    duration: '5 minutes',
-    colors: ['#fb923c', '#ef4444'] as [string, string],
-  },
-  {
-    id: 'dance-party',
-    title: 'Dance for 5 Minutes! 💃',
-    emoji: '💃',
-    description: 'Put on your favourite song and dance!',
-    duration: '5 minutes',
-    colors: ['#c084fc', '#ec4899'] as [string, string],
-  },
-  {
-    id: 'try-fruit',
-    title: 'Try One New Fruit! 🍎',
-    emoji: '🍎',
-    description: 'Ask a grown-up to help you pick a new fruit to taste!',
-    duration: 'Anytime',
-    colors: ['#4ade80', '#10b981'] as [string, string],
-  },
-  {
-    id: 'playground-time',
-    title: 'Play at the Park! ⚽',
-    emoji: '⚽',
-    description: 'Go outside and play - run, swing, or kick a ball!',
-    duration: '30 minutes',
-    colors: ['#60a5fa', '#06b6d4'] as [string, string],
-  },
-  {
-    id: 'bike-ride',
-    title: 'Bike Ride Adventure! 🚲',
-    emoji: '🚲',
-    description: 'Go for a bike ride with family!',
-    duration: '20 minutes',
-    colors: ['#2dd4bf', '#22c55e'] as [string, string],
-  },
-];
+// Fixed hero gradient — the mission content now comes from the shared Movement
+// Quest (the SAME one the home card shows), so it no longer carries its own
+// per-mission colours.
+const CARD_COLORS: [string, string] = ['#fb923c', '#ef4444'];
 
 export function KidsDailyMission() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const today = new Date().getDate();
-  const mission = missions[today % missions.length];
+  const route = useRoute<RouteProp<RootStackParamList, 'KidsDailyMission'>>();
+  // Show exactly the quest the home card was showing (passed by id). Falls back
+  // to the deterministic daily pick if opened without one.
+  const questId = route.params?.questId;
+  const quest =
+    (questId ? movementQuests.find(q => q.id === questId) : undefined) ??
+    selectDailyMovementQuest('6-8', null);
   const [missionStarted, setMissionStarted] = useState(false);
 
   const handleComplete = async () => {
@@ -84,11 +51,10 @@ export function KidsDailyMission() {
       (await storage.getItem('kidsAdventuresCompleted')) ?? '0',
     );
     await storage.setItem('kidsAdventuresCompleted', String(adventures + 1));
-    const catalog = matchCatalog(mission.title);
     navigation.navigate('KidsSuccessCelebration', {
-      missionId: catalog?.id,
-      missionTitle: catalog?.title ?? mission.title,
-      tags: catalog?.tags,
+      missionId: quest.id,
+      missionTitle: quest.title,
+      tags: quest.tags,
     });
   };
 
@@ -116,15 +82,14 @@ export function KidsDailyMission() {
             <>
               <Text style={styles.title}>Today's Mission! 🎯</Text>
 
-              <LinearGradient
-                colors={mission.colors}
-                style={styles.missionCard}
-              >
-                <Text style={styles.missionEmoji}>{mission.emoji}</Text>
-                <Text style={styles.missionTitle}>{mission.title}</Text>
-                <Text style={styles.missionDesc}>{mission.description}</Text>
+              <LinearGradient colors={CARD_COLORS} style={styles.missionCard}>
+                <Text style={styles.missionEmoji}>{quest.emoji}</Text>
+                <Text style={styles.missionTitle}>{quest.title}</Text>
+                <Text style={styles.missionDesc}>{quest.challenge}</Text>
                 <View style={styles.durationBadge}>
-                  <Text style={styles.durationText}>⏰ {mission.duration}</Text>
+                  <Text style={styles.durationText}>
+                    ⏰ {quest.durationMin} minutes
+                  </Text>
                 </View>
               </LinearGradient>
 
@@ -143,7 +108,7 @@ export function KidsDailyMission() {
           ) : (
             <View style={styles.inProgress}>
               <Text style={styles.buddyEmoji}>🐯</Text>
-              <Text style={styles.missionEmoji2}>{mission.emoji}</Text>
+              <Text style={styles.missionEmoji2}>{quest.emoji}</Text>
               <Text style={styles.inProgressTitle}>You're Doing Great! 🌟</Text>
               <Text style={styles.inProgressDesc}>
                 Have fun! When you're done, tap below!

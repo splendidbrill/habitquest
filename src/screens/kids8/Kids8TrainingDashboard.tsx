@@ -21,11 +21,17 @@ import { DailySpin, useDailySpin } from '../../components/DailySpin';
 import { ParentReactionBanner } from '../../components/ParentReactionBanner';
 import { useChild } from '../../context/ChildContext';
 import {
+  getRevivalStatus,
+  reviveStreak,
+  checkAndNotifyRevivalEligible,
+} from '../../services/streakService';
+import {
   loadFamilyProfile,
   type FamilyProfile,
 } from '../../data/familyProfile';
 import {
   selectDailyMovementQuest,
+  movementQuests,
   type MovementQuest,
 } from '../../data/movementQuests';
 import {
@@ -181,6 +187,9 @@ export function Kids8TrainingDashboard() {
     useState<KidsExerciseExplanation | null>(null);
   const [loadingExercise, setLoadingExercise] = useState(false);
   const [missionDone, setMissionDone] = useState(false);
+  const [revivalEligible, setRevivalEligible] = useState(false);
+  const [revivals, setRevivals] = useState(0);
+  const [reviving, setReviving] = useState(false);
 
   useEffect(() => {
     loadFamilyProfile().then(setProfile);
@@ -197,7 +206,14 @@ export function Kids8TrainingDashboard() {
       storage.getItem('kids8MissionCompletedDate').then(v => {
         setMissionDone(v === new Date().toDateString());
       });
-    }, []),
+      if (activeChild?.id) {
+        getRevivalStatus(activeChild.id).then(s => {
+          setRevivalEligible(s.eligible);
+          setRevivals(s.revivals_remaining);
+        });
+        checkAndNotifyRevivalEligible(activeChild.id);
+      }
+    }, [activeChild?.id]),
   );
 
   // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
@@ -236,6 +252,11 @@ export function Kids8TrainingDashboard() {
   // parent Weekly Plan shows for this child's age band).
   const quest: MovementQuest = selectDailyMovementQuest('8-10', profile);
 
+  // Look up the full quest behind today's plan activity for the sheet how-to.
+  const moveQuest: MovementQuest | undefined = todaysActivity
+    ? movementQuests.find(q => q.title === todaysActivity.name)
+    : undefined;
+
   const go = (screen: keyof RootStackParamList) =>
     navigation.navigate(screen as never);
 
@@ -259,6 +280,20 @@ export function Kids8TrainingDashboard() {
       setExerciseExplanation(ex);
       setLoadingExercise(false);
     }
+  };
+
+  const handleReviveStreak = async () => {
+    if (!activeChild?.id || reviving) return;
+    setReviving(true);
+    const { success } = await reviveStreak(activeChild.id);
+    if (success) {
+      setRevivalEligible(false);
+      setRevivals(Math.max(0, revivals - 1));
+      const status = await getRevivalStatus(activeChild.id);
+      setRevivalEligible(status.eligible);
+      setRevivals(status.revivals_remaining);
+    }
+    setReviving(false);
   };
 
   const renderTiles = (tiles: Tile[]) => (
@@ -335,6 +370,33 @@ export function Kids8TrainingDashboard() {
             </View>
           </View>
 
+          {revivalEligible && revivals > 0 && (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={handleReviveStreak}
+              disabled={reviving}
+            >
+              <LinearGradient
+                colors={['#f59e0b', '#d97706']}
+                style={styles.revivalCard}
+              >
+                <Text style={styles.revivalEmoji}>
+                  {reviving ? '⏳' : '🔥'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.revivalTitle}>Revive Your Streak!</Text>
+                  <Text style={styles.revivalSub}>
+                    You can bring it back — tap to restore
+                  </Text>
+                </View>
+                {!reviving && (
+                  <Text style={styles.revivalBadge}>×{revivals}</Text>
+                )}
+                {reviving && <ActivityIndicator color="#fff" />}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* Animated buddy */}
           <Animated.View style={{ transform: [{ translateY: floatY }] }}>
             <LinearGradient
@@ -370,7 +432,9 @@ export function Kids8TrainingDashboard() {
           ) : (
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => go('Kids8DailyMission')}
+              onPress={() =>
+                navigation.navigate('Kids8DailyMission', { questId: quest.id })
+              }
             >
               <View style={styles.questCard}>
                 <Text style={styles.questEmoji}>{quest.emoji}</Text>
@@ -592,6 +656,34 @@ export function Kids8TrainingDashboard() {
                   </Text>
                 ) : null}
 
+                {/* How to do it — real steps from the activity sheet */}
+                {moveQuest && (
+                  <View style={styles.howToBox}>
+                    <Text style={styles.planBoxTitle}>🏃 How to do it</Text>
+                    {moveQuest.warmUp ? (
+                      <Text style={styles.howToStep}>
+                        <Text style={styles.howToNum}>Warm up · </Text>
+                        {moveQuest.warmUp}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.howToStep}>
+                      <Text style={styles.howToNum}>Do it · </Text>
+                      {moveQuest.mainDrill ?? moveQuest.challenge}
+                    </Text>
+                    {moveQuest.coolDown ? (
+                      <Text style={styles.howToStep}>
+                        <Text style={styles.howToNum}>Cool down · </Text>
+                        {moveQuest.coolDown}
+                      </Text>
+                    ) : null}
+                    {moveQuest.coachingTips?.age8to10 ? (
+                      <Text style={styles.howToTip}>
+                        💡 {moveQuest.coachingTips.age8to10}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+
                 {loadingExercise || !exerciseExplanation ? (
                   <View style={styles.planLoading}>
                     <ActivityIndicator size="large" color={T.accent} />
@@ -724,6 +816,32 @@ const styles = StyleSheet.create({
   },
   xpFill: { height: '100%', backgroundColor: T.xpBar, borderRadius: 6 },
 
+  revivalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderRadius: T.radius,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  revivalEmoji: { fontSize: 44 },
+  revivalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  revivalSub: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  revivalBadge: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fff',
+  },
+
   buddyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -846,6 +964,26 @@ const styles = StyleSheet.create({
   },
   planLoading: { alignItems: 'center', paddingVertical: 30, gap: 12 },
   planLoadingText: { fontSize: 15, fontWeight: '600', color: T.purple700 },
+  howToBox: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  howToStep: {
+    fontSize: 15,
+    color: '#14532D',
+    lineHeight: 22,
+    marginBottom: 6,
+  },
+  howToNum: { fontWeight: '800', color: '#15803D' },
+  howToTip: {
+    fontSize: 14,
+    color: '#166534',
+    lineHeight: 20,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   planHook: {
     fontSize: 18,
     fontWeight: '800',

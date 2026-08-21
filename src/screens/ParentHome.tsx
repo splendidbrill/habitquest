@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
@@ -19,8 +20,12 @@ import {
   ChevronRight,
   Flame,
   Key,
+  LogOut,
+  Trash2,
+  MessageCircle,
 } from 'lucide-react-native';
 import type { RootStackParamList } from '../navigation';
+import { useAuth } from '../context/AuthContext';
 import { useParentData, ChildSummary } from '../hooks/useParentData';
 import type { Pillar } from '../services/syncService';
 import { useCallback } from 'react';
@@ -131,9 +136,32 @@ function ChildTabs({
 // ─── Main component ───────────────────────────────────────────────────────────
 export function ParentHome() {
   const navigation = useNavigation<Nav>();
+  const { signOut, deleteAccount } = useAuth();
   const { children, journey, parentName, familyCode, loading, alerts, reload } =
     useParentData();
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      "This permanently deletes your account and ALL your family's data — every child profile, plan, and progress record. This cannot be undone.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await deleteAccount();
+            setDeleting(false);
+            if (error) Alert.alert('Something went wrong', error);
+            // On success the SIGNED_OUT auth change returns the app to sign-in.
+          },
+        },
+      ],
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -466,6 +494,52 @@ export function ParentHome() {
             <Text style={s.dashBtnText}>View Full Dashboard & Tools</Text>
             <ChevronRight size={18} color="#fff" />
           </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Account */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Account</Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={signOut}
+            style={s.accountRow}
+          >
+            <LogOut size={18} color="#6b7280" />
+            <Text style={s.accountRowText}>Sign out</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            style={s.accountRow}
+          >
+            {deleting ? (
+              <ActivityIndicator size="small" color="#dc2626" />
+            ) : (
+              <Trash2 size={18} color="#dc2626" />
+            )}
+            <Text style={[s.accountRowText, { color: '#dc2626' }]}>
+              {deleting ? 'Deleting account…' : 'Delete my account'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={s.accountNote}>
+            Deleting your account permanently removes all your family's data and
+            cannot be undone.
+          </Text>
+        </View>
+
+        {/* Contact & Support */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('ContactSupport')}
+          style={s.contactCard}
+        >
+          <MessageCircle size={22} color="#3b82f6" />
+          <View style={{ flex: 1 }}>
+            <Text style={s.contactTitle}>Contact & Support</Text>
+            <Text style={s.contactSub}>Report bugs or share feedback</Text>
+          </View>
+          <ChevronRight size={20} color="#9ca3af" />
         </TouchableOpacity>
 
         <View style={{ height: 24 }} />
@@ -824,6 +898,42 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   dashBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+  },
+  accountRowText: { fontSize: 15, fontWeight: '600', color: '#374151' },
+  accountNote: {
+    fontSize: 12,
+    color: '#9ca3af',
+    lineHeight: 17,
+    marginTop: 4,
+  },
+
+  contactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  },
+  contactTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e40af',
+  },
+  contactSub: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
+  },
 
   emptyEmoji: { fontSize: 64, marginBottom: 16 },
   emptyTitle: {

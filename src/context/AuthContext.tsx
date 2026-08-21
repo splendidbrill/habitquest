@@ -35,6 +35,7 @@ type AuthContextType = {
     password: string,
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -141,9 +142,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.clearAppData();
   };
 
+  // Permanently delete the account + all its data (Google Play requirement).
+  // The edge function deletes the auth user server-side, which cascades every
+  // table; then we sign out + wipe local cache on this device.
+  const deleteAccount = async () => {
+    const { data, error } = await supabase.functions.invoke('delete-account', {
+      body: {},
+    });
+    if (error || !data?.success) {
+      return {
+        error:
+          error?.message ?? 'Could not delete your account. Please try again.',
+      };
+    }
+    await supabase.auth.signOut();
+    await storage.clearAppData();
+    return { error: null };
+  };
+
   return (
     <AuthContext.Provider
-      value={{ session, user, loading, signUp, signIn, signOut }}
+      value={{
+        session,
+        user,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        deleteAccount,
+      }}
     >
       {children}
     </AuthContext.Provider>

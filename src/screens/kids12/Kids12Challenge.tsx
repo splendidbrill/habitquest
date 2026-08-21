@@ -8,7 +8,11 @@ import {
   SafeAreaView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
@@ -20,6 +24,7 @@ import {
   type FamilyProfile,
 } from '../../data/familyProfile';
 import {
+  movementQuests,
   selectDailyMovementQuest,
   type MovementQuest,
 } from '../../data/movementQuests';
@@ -50,7 +55,13 @@ export function Kids12Challenge() {
     });
   }, []);
 
-  const quest: MovementQuest = selectDailyMovementQuest('10-12', profile);
+  // Show exactly the quest the Today card passed (by id); fall back to the
+  // deterministic daily pick if opened directly.
+  const route = useRoute<RouteProp<RootStackParamList, 'Kids12Challenge'>>();
+  const questId = route.params?.questId;
+  const quest: MovementQuest =
+    (questId ? movementQuests.find(q => q.id === questId) : undefined) ??
+    selectDailyMovementQuest('10-12', profile);
 
   const handleComplete = async () => {
     if (alreadyDone) return;

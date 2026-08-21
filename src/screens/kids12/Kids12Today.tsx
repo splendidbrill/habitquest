@@ -13,6 +13,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../utils/storage';
 import { Sparkles, MapPin, Flame, Star, User } from 'lucide-react-native';
+import { ActivityIndicator } from 'react-native';
+import {
+  getRevivalStatus,
+  reviveStreak,
+  checkAndNotifyRevivalEligible,
+} from '../../services/streakService';
 import { RecommendedMissions } from '../../components/RecommendedMissions';
 import { DailySpin, useDailySpin } from '../../components/DailySpin';
 import { ParentReactionBanner } from '../../components/ParentReactionBanner';
@@ -123,6 +129,9 @@ export function Kids12Today() {
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
   const [challengeDone, setChallengeDone] = useState(false);
+  const [revivalEligible, setRevivalEligible] = useState(false);
+  const [revivals, setRevivals] = useState(0);
+  const [reviving, setReviving] = useState(false);
 
   useEffect(() => {
     loadFamilyProfile().then(setProfile);
@@ -138,7 +147,14 @@ export function Kids12Today() {
       storage.getItem('kids12ChallengeCompletedDate').then(v => {
         setChallengeDone(v === new Date().toDateString());
       });
-    }, []),
+      if (activeChild?.id) {
+        getRevivalStatus(activeChild.id).then(s => {
+          setRevivalEligible(s.eligible);
+          setRevivals(s.revivals_remaining);
+        });
+        checkAndNotifyRevivalEligible(activeChild.id);
+      }
+    }, [activeChild?.id]),
   );
 
   // Phase A.2: mark avatar/onboarding complete so ProfileSelector can skip it.
@@ -156,6 +172,20 @@ export function Kids12Today() {
 
   const go = (screen: keyof RootStackParamList) =>
     navigation.navigate(screen as never);
+
+  const handleReviveStreak = async () => {
+    if (!activeChild?.id || reviving) return;
+    setReviving(true);
+    const { success } = await reviveStreak(activeChild.id);
+    if (success) {
+      setRevivalEligible(false);
+      setRevivals(Math.max(0, revivals - 1));
+      const status = await getRevivalStatus(activeChild.id);
+      setRevivalEligible(status.eligible);
+      setRevivals(status.revivals_remaining);
+    }
+    setReviving(false);
+  };
 
   const renderTiles = (tiles: Tile[]) => (
     <View style={styles.tileGrid}>
@@ -242,11 +272,42 @@ export function Kids12Today() {
             <Sparkles size={26} color={T.gold} />
           </LinearGradient>
 
+          {revivalEligible && revivals > 0 && (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={handleReviveStreak}
+              disabled={reviving}
+            >
+              <LinearGradient
+                colors={['#f59e0b', '#d97706']}
+                style={styles.revivalCard}
+              >
+                <Text style={styles.revivalEmoji}>
+                  {reviving ? '⏳' : '🔥'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.revivalTitle}>Revive Your Streak!</Text>
+                  <Text style={styles.revivalSub}>
+                    You can bring it back — tap to restore
+                  </Text>
+                </View>
+                {!reviving && (
+                  <Text style={styles.revivalBadge}>×{revivals}</Text>
+                )}
+                {reviving && <ActivityIndicator color="#fff" />}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           {/* Today's Challenge — the daily Movement Quest (tap to complete) */}
           <View style={styles.sectionHead}>
             <Text style={styles.sectionTitle}>Today's Challenge</Text>
             {!challengeDone && (
-              <TouchableOpacity onPress={() => go('Kids12Challenge')}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Kids12Challenge', { questId: quest.id })
+                }
+              >
                 <Text style={styles.seeAll}>Open</Text>
               </TouchableOpacity>
             )}
@@ -264,7 +325,9 @@ export function Kids12Today() {
           ) : (
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => go('Kids12Challenge')}
+              onPress={() =>
+                navigation.navigate('Kids12Challenge', { questId: quest.id })
+              }
             >
               <View style={styles.questCard}>
                 <Text style={styles.questEmoji}>{quest.emoji}</Text>
@@ -431,6 +494,32 @@ const styles = StyleSheet.create({
   identityEmoji: { fontSize: 40 },
   identityTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
   identitySub: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+
+  revivalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: T.radius,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  revivalEmoji: { fontSize: 40 },
+  revivalTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  revivalSub: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  revivalBadge: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#fff',
+  },
 
   sectionHead: {
     flexDirection: 'row',

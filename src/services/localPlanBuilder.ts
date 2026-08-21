@@ -133,6 +133,10 @@ export function buildLocalPlan(
 
   const band = ageToBand(profile.childAge);
   const baseDate = new Date();
+  // Monday-based index of today (Mon=0 … Sun=6). Used to give each weekday row
+  // the quest for that weekday's ACTUAL date this week, so today's weekday shows
+  // today's daily mission (not always Monday). Keeps Plan/Home/child in sync.
+  const todayIdx = (baseDate.getDay() + 6) % 7;
 
   return WEEKDAYS.map((day, i): DayPlan => {
     const m = meals[i];
@@ -155,9 +159,10 @@ export function buildLocalPlan(
       };
     }
 
-    // Deterministic, personalised activity that differs day to day.
+    // Deterministic, personalised activity for THIS weekday's real date, so the
+    // row whose weekday is today carries today's daily mission.
     const quest = selectDailyMovementQuest(band, profile, {
-      date: new Date(baseDate.getTime() + i * 86_400_000),
+      date: new Date(baseDate.getTime() + (i - todayIdx) * 86_400_000),
     });
     const activity: DayActivity = {
       name: quest.title,

@@ -119,14 +119,21 @@ export async function recordMissionComplete(
   const newStreak =
     child.last_active_date === yesterdayStr ? (child.streak ?? 0) + 1 : 1;
 
-  await supabase
-    .from('children')
-    .update({
-      streak: newStreak,
-      last_active_date: today,
-      xp: (child.xp ?? 0) + xpReward,
-    })
-    .eq('id', childId);
+  const streakBroken =
+    child.last_active_date !== yesterdayStr && child.streak > 0;
+  const updateData: any = {
+    streak: newStreak,
+    last_active_date: today,
+    xp: (child.xp ?? 0) + xpReward,
+  };
+
+  // If streak was broken (skipped a day), store the previous count for revival
+  if (streakBroken) {
+    updateData.previous_streak_count = child.streak;
+    updateData.streak_broken_date = yesterdayStr; // yesterday is when it broke
+  }
+
+  await supabase.from('children').update(updateData).eq('id', childId);
 
   const milestone = await checkStreakMilestone(childId, newStreak);
   return { newStreak, milestone };
@@ -232,6 +239,133 @@ export async function loadFreezeStatus(childId: string): Promise<{
     freezesAvailable: childRes.data?.streak_freezes ?? 0,
     usedThisWeek: (usageRes.data?.length ?? 0) > 0,
   };
+}
+
+// ─── Check if streak revival is available (7 days after break) ───────────────
+export async function checkStreakRevivalEligible(
+  childId: string,
+): Promise<boolean> {
+  const { data: child } = await supabase
+    .from('children')
+    .select('streak_broken_date, streak, streak_revivals')
+    .eq('id', childId)
+    .single();
+
+  if (!child || !child.streak_broken_date || child.streak !== 0) return false;
+  if ((child.streak_revivals ?? 0) <= 0) return false;
+
+  const today = new Date().toISOString().split('T')[0];
+  const brokenDate = new Date(child.streak_broken_date);
+  const sevenDaysLater = new Date(brokenDate);
+  sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+  const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
+
+  return today >= sevenDaysLaterStr;
+}
+
+// ─── Get revival status (for UI) ────────────────────────────────────────────
+export async function getRevivalStatus(childId: string): Promise<{
+  eligible: boolean;
+  revivals_remaining: number;
+  days_until_eligible: number;
+}> {
+  const { data: child } = await supabase
+    .from('children')
+    .select('streak_broken_date, streak, streak_revivals')
+    .eq('id', childId)
+    .single();
+
+  if (!child || child.streak !== 0 || !child.streak_broken_date) {
+    return {
+      eligible: false,
+      revivals_remaining: child?.streak_revivals ?? 0,
+      days_until_eligible: 0,
+    };
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const brokenDate = new Date(child.streak_broken_date);
+  const sevenDaysLater = new Date(brokenDate);
+  sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+  const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
+
+  const daysUntil = Math.ceil(
+    (new Date(sevenDaysLaterStr).getTime() - new Date(today).getTime()) /
+      (1000 * 60 * 60 * 24),
+  );
+
+  return {
+    eligible: today >= sevenDaysLaterStr && (child.streak_revivals ?? 0) > 0,
+    revivals_remaining: child.streak_revivals ?? 0,
+    days_until_eligible: Math.max(0, daysUntil),
+  };
+}
+
+// ─── Perform streak revival (tap the button) ────────────────────────────────
+export async function reviveStreak(
+  childId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { data: child } = await supabase
+    .from('children')
+    .select('previous_streak_count, streak_revivals')
+    .eq('id', childId)
+    .single();
+
+  if (!child) return { success: false, error: 'Child not found' };
+  if ((child.streak_revivals ?? 0) <= 0) {
+    return { success: false, error: 'No revivals remaining' };
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const restoredStreak = child.previous_streak_count ?? 0;
+
+  // Restore streak and log the revival
+  await supabase
+    .from('children')
+    .update({
+      streak: restoredStreak,
+      streak_revivals: (child.streak_revivals ?? 0) - 1,
+      streak_broken_date: null,
+      previous_streak_count: 0,
+    })
+    .eq('id', childId);
+
+  // Log the usage
+  await supabase.from('streak_revival_usage').insert({
+    child_id: childId,
+    used_on: today,
+    revived_streak_count: restoredStreak,
+  });
+
+  return { success: true };
+}
+
+// ─── Check and notify if revival just became eligible ────────────────────
+// Call this on app start/focus for each child. Shows once per revival window.
+export async function checkAndNotifyRevivalEligible(
+  childId: string,
+): Promise<void> {
+  const eligible = await checkStreakRevivalEligible(childId);
+  if (!eligible) return;
+
+  const notificationKey = `streakRevivalNotified:${childId}`;
+  const notified = await (
+    await import('../utils/storage')
+  ).storage.getItem(notificationKey);
+  if (notified === '1') return; // Already notified this revival window
+
+  // Mark as notified and show local notification
+  await (
+    await import('../utils/storage')
+  ).storage.setItem(notificationKey, '1');
+
+  // Import Alert here to avoid circular dependencies
+  const { Alert } = await import('react-native');
+  Alert.alert(
+    'Fire Your Streak Can Revive!',
+    "You've waited 7 days - tap 'Revive Your Streak' on your home screen to bring it back!",
+    [{ text: 'Got it!', style: 'default' }],
+  );
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

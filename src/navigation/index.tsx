@@ -27,6 +27,7 @@ import { MysteryBox } from '../screens/MysteryBox';
 import { FamilyAdventureMap } from '../screens/FamilyAdventureMap';
 import { FamilyAdventureDetail } from '../screens/FamilyAdventureDetail';
 import { AIChef } from '../screens/AIChef';
+import { ContactSupport } from '../screens/ContactSupport';
 
 import { Welcome } from '../screens/Welcome';
 import { IntroVideo } from '../screens/onboarding/IntroVideo';
@@ -140,6 +141,7 @@ export type RootStackParamList = {
     parentId: string;
   };
   AIChef: undefined;
+  ContactSupport: undefined;
   // Entry
   RoleSelection: undefined;
   AgeGroup: undefined;
@@ -173,7 +175,7 @@ export type RootStackParamList = {
   KidsAvatarCustomize: undefined;
   KidsBuddyHome: undefined;
   KidsAvatarStatus: undefined;
-  KidsDailyMission: undefined;
+  KidsDailyMission: { questId?: string } | undefined;
   KidsSuccessCelebration:
     | { missionId?: string; missionTitle?: string; tags?: string[] }
     | undefined;
@@ -194,7 +196,7 @@ export type RootStackParamList = {
   Kids12Today: undefined;
   Kids12CheckIn: undefined;
   Kids12Movement: undefined;
-  Kids12Challenge: undefined;
+  Kids12Challenge: { questId?: string } | undefined;
   Kids12Reflection: undefined;
   Kids12WellbeingTracker: undefined;
   Kids12WeeklyPlanner: undefined;
@@ -213,7 +215,7 @@ export type RootStackParamList = {
   Kids8FuelStation: undefined;
   Kids8Achievements: undefined;
   Kids8ProgressTracker: undefined;
-  Kids8DailyMission: undefined;
+  Kids8DailyMission: { questId?: string } | undefined;
   Kids8SuccessCelebration: undefined;
   Kids8DinnerChoice: undefined;
   Kids8VeggieSelector: undefined;
@@ -380,6 +382,7 @@ export function AppNavigator() {
         component={FamilyAdventureDetail}
       />
       <RootStack.Screen name="AIChef" component={AIChef} />
+      <RootStack.Screen name="ContactSupport" component={ContactSupport} />
       {/* Entry point */}
       <RootStack.Screen name="RoleSelection" component={RoleSelection} />
       <RootStack.Screen name="AgeGroup" component={AgeGroup} />

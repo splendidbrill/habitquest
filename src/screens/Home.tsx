@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Heart,
@@ -107,6 +107,40 @@ export function HomeScreen() {
     };
     init();
   }, []);
+
+  // Re-read today's plan whenever Home regains focus, so it can't show a stale
+  // meal/activity after the Plan tab regenerated or the AI re-worded the week.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getTodaysPlan().then(todays => {
+        if (!active) return;
+        setPersonalizedTasks([
+          {
+            id: 1,
+            icon: Apple,
+            title: todays.meal.name,
+            subtitle: todays.meal.leftoverNote || todays.meal.reason,
+          },
+          {
+            id: 2,
+            icon: Footprints,
+            title: todays.activity.name,
+            subtitle: todays.activity.description,
+          },
+          {
+            id: 3,
+            icon: Droplets,
+            title: 'Water with meals today',
+            subtitle: 'Keep a jug on the table at dinner',
+          },
+        ]);
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
