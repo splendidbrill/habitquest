@@ -17,6 +17,19 @@ end
 target 'HabitQuest' do
   config = use_native_modules!
 
+  # Firebase ships Swift pods that depend on GoogleUtilities, which does not
+  # define modules. As static libraries that combination fails to integrate, so
+  # these dependencies are built with module maps. Scoped to the pods that need
+  # it rather than a global use_modular_headers!, which breaks other RN pods.
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseCoreExtension', :modular_headers => true
+  pod 'FirebaseInstallations', :modular_headers => true
+  pod 'FirebaseMessaging', :modular_headers => true
+  pod 'GoogleDataTransport', :modular_headers => true
+  pod 'nanopb', :modular_headers => true
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
