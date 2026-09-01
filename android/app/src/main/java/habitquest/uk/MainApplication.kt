@@ -1,4 +1,4 @@
-package com.habitquest
+package habitquest.uk
 
 import android.app.Application
 import com.facebook.react.PackageList

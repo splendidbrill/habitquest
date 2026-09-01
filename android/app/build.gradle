@@ -77,7 +77,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.habitquest"
+    namespace "habitquest.uk"
 
     splits {
         abi {
@@ -88,10 +88,10 @@ android {
         }
     }
     defaultConfig {
-        applicationId "com.habitquest"
+        applicationId "habitquest.uk"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 3
         versionName "1.0"
     }
     signingConfigs {

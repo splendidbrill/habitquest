@@ -1,4 +1,4 @@
-package com.habitquest
+package habitquest.uk
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
