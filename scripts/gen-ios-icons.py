@@ -12,7 +12,9 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ICONSET = os.path.join(ROOT, "ios", "HabitQuest", "Images.xcassets", "AppIcon.appiconset")
-SIZES = [40, 58, 60, 80, 87, 120, 180, 1024]
+# iPhone, iPad and App Store sizes. iPad entries (152 and 167 especially) are
+# required by App Store validation because the app declares iPad support.
+SIZES = [20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024]
 
 
 def main():
