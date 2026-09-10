@@ -6,6 +6,15 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 platform :ios, min_ios_version_supported
+
+# React Native 0.85 ships its core as prebuilt binaries that locate headers and
+# module maps through a VFS overlay (React-Core-prebuilt/React-VFS.yaml),
+# resolved at pod install time against the normal build products directory.
+# Archive builds use ArchiveIntermediates/<target>/BuildProductsPath instead, so
+# the overlay resolves to a path that does not exist and Swift fails with
+# "No such module 'React'". Building core from source removes the overlay.
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
