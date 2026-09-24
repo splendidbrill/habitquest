@@ -1,0 +1,228 @@
+Incident Identifier: 4010D560-05F0-4915-AB45-4674CB7C13B8
+Distributor ID:      com.apple.TestFlight
+Hardware Model:      iPhone14,5
+Process:             HabitQuest [771]
+Path:                /private/var/containers/Bundle/Application/4D9EDED1-FEA9-426B-AA5A-7E002A7A4163/HabitQuest.app/HabitQuest
+Identifier:          uk.habitquest.app
+Version:             1.0 (1)
+AppStoreTools:       27A261
+AppVariant:          1:iPhone14,5:26
+Beta:                YES
+Code Type:           ARM-64 (Native)
+Role:                Foreground
+Parent Process:      launchd [1]
+Coalition:           uk.habitquest.app [10936]
+
+Date/Time:           2026-09-19 17:33:53.2168 +0100
+Launch Time:         2026-09-19 17:33:52.7795 +0100
+OS Version:          iPhone OS 26.6.2 (23G90)
+Release Type:        User
+Baseband Version:    5.51.03
+Report Version:      104
+
+Exception Type:  EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Termination Reason: SIGNAL 6 Abort trap: 6
+Terminating Process: HabitQuest [771]
+
+Triggered by Thread:  3
+
+Last Exception Backtrace:
+0   CoreFoundation                	0x1898402d4 __exceptionPreprocess + 164 (:-1)
+1   libobjc.A.dylib               	0x18630d224 objc_exception_throw + 88 (:-1)
+2   HabitQuest                    	0x1009f5290 RCTFatal + 572 (RCTAssert.m:147)
+3   HabitQuest                    	0x100a409c4 -[RCTExceptionsManager reportFatal:stack:exceptionId:extraDataAsJSON:] + 504 (RCTExceptionsManager.mm:85)
+4   HabitQuest                    	0x100a413fc -[RCTExceptionsManager reportException:] + 2288 (RCTExceptionsManager.mm:160)
+5   CoreFoundation                	0x18978e924 __invoking___ + 148 (:-1)
+6   CoreFoundation                	0x18978e7a8 -[NSInvocation invoke] + 424 (:-1)
+7   CoreFoundation                	0x1897a4460 -[NSInvocation invokeWithTarget:] + 64 (:-1)
+8   HabitQuest                    	0x100b52d90 invocation function for block in facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*) + 68 (RCTTurboModule.mm:462)
+9   HabitQuest                    	0x100b58200 facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0::operator()() const + 36 (RCTTurboModule.mm:481)
+10  HabitQuest                    	0x100b58200 std::__1::__invoke_result_impl<void, facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0&>::type std::__1::__inv... + 36 (invoke.h:87)
+11  HabitQuest                    	0x100b58200 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:nqe210106]<facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSM... + 36 (invoke.h:342)
+12  HabitQuest                    	0x100b58200 void std::__1::__invoke_r[abi:nqe210106]<void, facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0&>(facebook::r... + 36 (invoke.h:348)
+13  HabitQuest                    	0x100b58200 std::__1::__function::__func<facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0, void ()>::operator()() + 104 (function.h:174)
+14  libdispatch.dylib             	0x1c42529a8 _dispatch_call_block_and_release + 32 (:-1)
+15  libdispatch.dylib             	0x1c426c1e4 _dispatch_client_callout + 16 (:-1)
+16  libdispatch.dylib             	0x1c425afb0 _dispatch_continuation_invoke_inline + 136 (:-1)
+17  libdispatch.dylib             	0x1c425afb0 _dispatch_continuation_pop_inline + 136 (:-1)
+18  libdispatch.dylib             	0x1c425afb0 _dispatch_lane_drain + 700 (:-1)
+19  libdispatch.dylib             	0x1c425afb0 _dispatch_lane_serial_drain + 740 (:-1)
+20  libdispatch.dylib             	0x1c425baac _dispatch_lane_invoke2 + 56 (:-1)
+21  libdispatch.dylib             	0x1c425baac _dispatch_queue_class_invoke + 344 (:-1)
+22  libdispatch.dylib             	0x1c425baac _dispatch_lane_invoke + 392 (:-1)
+23  libdispatch.dylib             	0x1c4265dac _dispatch_root_queue_drain_deferred_wlh + 284 (:-1)
+24  libdispatch.dylib             	0x1c42656ac _dispatch_wlh_worker_thread + 520 (:-1)
+25  libdispatch.dylib             	0x1c42656ac _dispatch_workloop_worker_thread + 720 (:-1)
+26  libsystem_pthread.dylib       	0x1e90d73b0 _pthread_wqthread + 292 (:-1)
+27  libsystem_pthread.dylib       	0x1e90d68c0 start_wqthread + 8 (:-1)
+
+Thread 0 name:
+Thread 0:
+0   libsystem_kernel.dylib        	0x0000000238d80cd4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x0000000238d8430c mach_msg2_internal + 76 (:-1)
+2   libsystem_kernel.dylib        	0x0000000238d8422c mach_msg2 + 4 (:-1)
+3   libsystem_kernel.dylib        	0x0000000238d8422c mach_msg_overwrite + 424 (:-1)
+4   libsystem_kernel.dylib        	0x0000000238d84078 mach_msg + 24 (:-1)
+5   CoreFoundation                	0x0000000189790374 __CFRunLoopServiceMachPort + 160 (:-1)
+6   CoreFoundation                	0x000000018975a310 __CFRunLoopRun + 1188 (:-1)
+7   CoreFoundation                	0x000000018975954c _CFRunLoopRunSpecificWithOptions + 532 (:-1)
+8   GraphicsServices              	0x000000022f711498 GSEventRunModal + 120 (:-1)
+9   UIKitCore                     	0x000000018f48d670 -[UIApplication _run] + 796 (:-1)
+10  UIKitCore                     	0x000000018f3f8158 UIApplicationMain + 332 (:-1)
+11  UIKitCore                     	0x000000018f604aa4 UIApplicationMain(_:_:_:_:) + 104 (:-1)
+12  HabitQuest                    	0x00000001008b0b38 specialized static UIApplicationDelegate.main() + 28 (/<compiler-generated>:6)
+13  HabitQuest                    	0x00000001008b0b38 static AppDelegate.$main() + 28 (AppDelegate.swift:0)
+14  HabitQuest                    	0x00000001008b0b38 main + 120
+15  dyld                          	0x0000000186365c1c start + 6928 (:-1)
+
+Thread 1:
+
+Thread 2:
+
+Thread 3 name:
+Thread 3 Crashed:
+0   libsystem_kernel.dylib        	0x0000000238d8b1d0 __pthread_kill + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000001e90dd7dc pthread_kill + 268 (:-1)
+2   libsystem_c.dylib             	0x000000019531efcc abort + 148 (:-1)
+3   libc++abi.dylib               	0x000000018640efd4 __abort_message + 132 (:-1)
+4   libc++abi.dylib               	0x0000000186410b90 demangling_terminate_handler() + 296 (:-1)
+5   libobjc.A.dylib               	0x000000018630f868 _objc_terminate() + 156 (:-1)
+6   libc++abi.dylib               	0x000000018641b1f8 std::__terminate(void (*)()) + 16 (:-1)
+7   libc++abi.dylib               	0x000000018640edcc __cxa_rethrow + 188 (:-1)
+8   libobjc.A.dylib               	0x000000018631bb58 objc_exception_rethrow + 44 (:-1)
+9   HabitQuest                    	0x0000000100b52dcc invocation function for block in facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*) + 128 (RCTTurboModule.mm:469)
+10  HabitQuest                    	0x0000000100b58200 facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0::operator()() const + 36 (RCTTurboModule.mm:481)
+11  HabitQuest                    	0x0000000100b58200 std::__1::__invoke_result_impl<void, facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0&>::type std::__1::__inv... + 36 (invoke.h:87)
+12  HabitQuest                    	0x0000000100b58200 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:nqe210106]<facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSM... + 36 (invoke.h:342)
+13  HabitQuest                    	0x0000000100b58200 void std::__1::__invoke_r[abi:nqe210106]<void, facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0&>(facebook::r... + 36 (invoke.h:348)
+14  HabitQuest                    	0x0000000100b58200 std::__1::__function::__func<facebook::react::ObjCTurboModule::performVoidMethodInvocation(facebook::jsi::Runtime&, char const*, NSInvocation*, NSMutableArray*)::$_0, void ()>::operator()() + 104 (function.h:174)
+15  libdispatch.dylib             	0x00000001c42529a8 _dispatch_call_block_and_release + 32 (:-1)
+16  libdispatch.dylib             	0x00000001c426c1e4 _dispatch_client_callout + 16 (:-1)
+17  libdispatch.dylib             	0x00000001c425afb0 _dispatch_continuation_invoke_inline + 136 (:-1)
+18  libdispatch.dylib             	0x00000001c425afb0 _dispatch_continuation_pop_inline + 136 (:-1)
+19  libdispatch.dylib             	0x00000001c425afb0 _dispatch_lane_drain + 700 (:-1)
+20  libdispatch.dylib             	0x00000001c425afb0 _dispatch_lane_serial_drain + 740 (:-1)
+21  libdispatch.dylib             	0x00000001c425baac _dispatch_lane_invoke2 + 56 (:-1)
+22  libdispatch.dylib             	0x00000001c425baac _dispatch_queue_class_invoke + 344 (:-1)
+23  libdispatch.dylib             	0x00000001c425baac _dispatch_lane_invoke + 392 (:-1)
+24  libdispatch.dylib             	0x00000001c4265dac _dispatch_root_queue_drain_deferred_wlh + 284 (:-1)
+25  libdispatch.dylib             	0x00000001c42656ac _dispatch_wlh_worker_thread + 520 (:-1)
+26  libdispatch.dylib             	0x00000001c42656ac _dispatch_workloop_worker_thread + 720 (:-1)
+27  libsystem_pthread.dylib       	0x00000001e90d73b0 _pthread_wqthread + 292 (:-1)
+28  libsystem_pthread.dylib       	0x00000001e90d68c0 start_wqthread + 8 (:-1)
+
+Thread 4:
+
+Thread 5:
+
+Thread 6 name:
+Thread 6:
+0   libsystem_platform.dylib      	0x00000002aa671ccc _platform_memset + 108 (:-1)
+1   libsystem_malloc.dylib        	0x0000000194ebc9e4 _xzm_xzone_malloc_small + 2408 (:-1)
+2   libobjc.A.dylib               	0x00000001862e0000 objc::malloc_instance(unsigned long, objc_class*) + 12 (:-1)
+3   libobjc.A.dylib               	0x00000001862e0000 _class_createInstance_realized(objc_class*, unsigned long, int, bool, unsigned long*) + 20 (:-1)
+4   libobjc.A.dylib               	0x00000001862e0000 _objc_rootAllocWithZone + 52 (:-1)
+5   Foundation                    	0x00000001869e4c34 -[NSXPCConnection _sendInvocation:orArguments:count:methodSignature:selector:withProxy:] + 1020 (:-1)
+6   CoreFoundation                	0x000000018978e3cc ___forwarding___ + 1072 (:-1)
+7   CoreFoundation                	0x0000000189798e90 _CF_forwarding_prep_0 + 96 (:-1)
+8   UserNotifications             	0x00000001c0ee54d0 __109-[UNUserNotificationServiceConnection requestAuthorizationWithOptions:forBundleIdentifier:completionHandler:]_block_invoke + 288 (:-1)
+9   libdispatch.dylib             	0x00000001c42529a8 _dispatch_call_block_and_release + 32 (:-1)
+10  libdispatch.dylib             	0x00000001c426c1e4 _dispatch_client_callout + 16 (:-1)
+11  libdispatch.dylib             	0x00000001c425afb0 _dispatch_continuation_invoke_inline + 136 (:-1)
+12  libdispatch.dylib             	0x00000001c425afb0 _dispatch_continuation_pop_inline + 136 (:-1)
+13  libdispatch.dylib             	0x00000001c425afb0 _dispatch_lane_drain + 700 (:-1)
+14  libdispatch.dylib             	0x00000001c425afb0 _dispatch_lane_serial_drain + 740 (:-1)
+15  libdispatch.dylib             	0x00000001c425bae4 _dispatch_lane_invoke2 + 52 (:-1)
+16  libdispatch.dylib             	0x00000001c425bae4 _dispatch_queue_class_invoke + 400 (:-1)
+17  libdispatch.dylib             	0x00000001c425bae4 _dispatch_lane_invoke + 448 (:-1)
+18  libdispatch.dylib             	0x00000001c4265dac _dispatch_root_queue_drain_deferred_wlh + 284 (:-1)
+19  libdispatch.dylib             	0x00000001c42656ac _dispatch_wlh_worker_thread + 520 (:-1)
+20  libdispatch.dylib             	0x00000001c42656ac _dispatch_workloop_worker_thread + 720 (:-1)
+21  libsystem_pthread.dylib       	0x00000001e90d73b0 _pthread_wqthread + 292 (:-1)
+22  libsystem_pthread.dylib       	0x00000001e90d68c0 start_wqthread + 8 (:-1)
+
+Thread 7:
+
+Thread 8:
+
+Thread 9 name:
+Thread 9:
+0   libsystem_kernel.dylib        	0x0000000238d80cd4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x0000000238d8430c mach_msg2_internal + 76 (:-1)
+2   libsystem_kernel.dylib        	0x0000000238d8422c mach_msg2 + 4 (:-1)
+3   libsystem_kernel.dylib        	0x0000000238d8422c mach_msg_overwrite + 424 (:-1)
+4   libsystem_kernel.dylib        	0x0000000238d84078 mach_msg + 24 (:-1)
+5   CoreFoundation                	0x0000000189790374 __CFRunLoopServiceMachPort + 160 (:-1)
+6   CoreFoundation                	0x000000018975a310 __CFRunLoopRun + 1188 (:-1)
+7   CoreFoundation                	0x000000018975954c _CFRunLoopRunSpecificWithOptions + 532 (:-1)
+8   Foundation                    	0x00000001869c6cf0 -[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 212 (:-1)
+9   Foundation                    	0x00000001869c6bd8 -[NSRunLoop(NSRunLoop) runUntilDate:] + 64 (:-1)
+10  UIKitCore                     	0x000000018f452eac -[UIEventFetcher threadMain] + 420 (:-1)
+11  Foundation                    	0x0000000186a4a914 __NSThread__start__ + 732 (:-1)
+12  libsystem_pthread.dylib       	0x00000001e90da438 _pthread_start + 136 (:-1)
+13  libsystem_pthread.dylib       	0x00000001e90d68cc thread_start + 8 (:-1)
+
+Thread 10 name:
+Thread 10:
+0   libsystem_kernel.dylib        	0x0000000238d80cd4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x0000000238d8430c mach_msg2_internal + 76 (:-1)
+2   libsystem_kernel.dylib        	0x0000000238d8422c mach_msg2 + 4 (:-1)
+3   libsystem_kernel.dylib        	0x0000000238d8422c mach_msg_overwrite + 424 (:-1)
+4   libsystem_kernel.dylib        	0x0000000238d84078 mach_msg + 24 (:-1)
+5   CoreFoundation                	0x0000000189790374 __CFRunLoopServiceMachPort + 160 (:-1)
+6   CoreFoundation                	0x000000018975a310 __CFRunLoopRun + 1188 (:-1)
+7   CoreFoundation                	0x000000018975954c _CFRunLoopRunSpecificWithOptions + 532 (:-1)
+8   HabitQuest                    	0x0000000100bfb74c +[RCTJSThreadManager runRunLoop] + 212 (RCTJSThreadManager.mm:102)
+9   Foundation                    	0x0000000186a4a914 __NSThread__start__ + 732 (:-1)
+10  libsystem_pthread.dylib       	0x00000001e90da438 _pthread_start + 136 (:-1)
+11  libsystem_pthread.dylib       	0x00000001e90d68cc thread_start + 8 (:-1)
+
+Thread 11 name:
+Thread 11:
+0   libsystem_kernel.dylib        	0x0000000238d865e8 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000001e90d8b48 _pthread_psynch_cond_wait + 92 (:-1)
+2   libsystem_pthread.dylib       	0x00000001e90d8b48 _pthread_cond_wait + 980 (:-1)
+3   libc++.1.dylib                	0x0000000198ea5bcc std::__1::__libcpp_condvar_wait[abi:nqe210106](_opaque_pthread_cond_t*, _opaque_pthread_mutex_t*) + 4 (:-1)
+4   libc++.1.dylib                	0x0000000198ea5bcc std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (:-1)
+5   hermesvm                      	0x000000010167b628 hermes::vm::HadesGC::Executor::worker() + 104 (:-1)
+6   hermesvm                      	0x000000010167b59c void* std::__1::__thread_proxy[abi:nn190102]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exe... + 44 (:-1)
+7   libsystem_pthread.dylib       	0x00000001e90da438 _pthread_start + 136 (:-1)
+8   libsystem_pthread.dylib       	0x00000001e90d68cc thread_start + 8 (:-1)
+
+
+Thread 3 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000   x1: 0x0000000000000000   x2: 0x0000000000000000   x3: 0x0000000000000000
+    x4: 0x000000018641dcd3   x5: 0x000000016f6f2790   x6: 0x000000000000006e   x7: 0xfffff0003ffff800
+    x8: 0xabed34ae4878e4c5   x9: 0xabed34af2717d4c5  x10: 0x0000000000000002  x11: 0x00000000fffffffd
+   x12: 0x0000000000000000  x13: 0x0000000000000000  x14: 0x0000000000000000  x15: 0x0000000000000000
+   x16: 0x0000000000000148  x17: 0x000000016f6f3000  x18: 0x0000000000000000  x19: 0x0000000000000006
+   x20: 0x0000000000001003  x21: 0x000000016f6f30e0  x22: 0x434c4e47432b2b00  x23: 0x000000016f6f30e0
+   x24: 0x0000000000000000  x25: 0x00000001070c0780  x26: 0x0000000000000000  x27: 0x0000000000000000
+   x28: 0x0000000000000114   fp: 0x000000016f6f2700   lr: 0x00000001e90dd7dc
+    sp: 0x000000016f6f26e0   pc: 0x0000000238d8b1d0 cpsr: 0x40001000
+   esr: 0x56000080 (Syscall)
+
+
+Binary Images:
+        0x1008ac000 -         0x100e3ffff HabitQuest arm64  <05ef4c78741238b8ba449f55998f4708> /private/var/containers/Bundle/Application/4D9EDED1-FEA9-426B-AA5A-7E002A7A4163/HabitQuest.app/HabitQuest
+        0x101008000 -         0x10108bfff ReactNativeDependencies arm64  <db4e121670c636f08a46fdd48fcae1f2> /private/var/containers/Bundle/Application/4D9EDED1-FEA9-426B-AA5A-7E002A7A4163/HabitQuest.app/Frameworks/ReactNativeDependencies.framework/ReactNativeDependencies
+        0x1011ec000 -         0x1011f7fff libobjc-trampolines.dylib arm64e  <004ce93cf1423d68b3c330c6efef4d65> /private/preboot/Cryptexes/OS/usr/lib/libobjc-trampolines.dylib
+        0x1014a0000 -         0x101717fff hermesvm arm64  <cfba4be469803b0fb2d0ab67e21eda99> /private/var/containers/Bundle/Application/4D9EDED1-FEA9-426B-AA5A-7E002A7A4163/HabitQuest.app/Frameworks/hermesvm.framework/hermesvm
+        0x1862dc000 -         0x18632d47f libobjc.A.dylib arm64e  <794fd2568a8d3c8d91aaaac27ef3512c> /usr/lib/libobjc.A.dylib
+        0x186361000 -         0x18640647f dyld arm64e  <0f8d35b6556f3e348eaa80ab54047dc5> /usr/lib/dyld
+        0x186407000 -         0x18642159f libc++abi.dylib arm64e  <4e297677d0143f999183690b92b47fc3> /usr/lib/libc++abi.dylib
+        0x1869bc000 -         0x187845cbf Foundation arm64e  <73841aa3bfdd322d8dc2e5185a14dee1> /System/Library/Frameworks/Foundation.framework/Foundation
+        0x18972b000 -         0x189cc7a3f CoreFoundation arm64e  <101eb2f1191534a08bc9631d03753b84> /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+        0x18f36c000 -         0x1918af63f UIKitCore arm64e  <0d94422ffe7c302eb8963bc5873c0cfc> /System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore
+        0x194eb7000 -         0x194effd0f libsystem_malloc.dylib arm64e  <8dd655656066300ead0a73118179edb5> /usr/lib/system/libsystem_malloc.dylib
+        0x1952a8000 -         0x1953275ff libsystem_c.dylib arm64e  <ff42982180de3a6899cb0b2e707e8d48> /usr/lib/system/libsystem_c.dylib
+        0x198e99000 -         0x198f29a7b libc++.1.dylib arm64e  <be42c2212eb03636aef59cedc8b1f656> /usr/lib/libc++.1.dylib
+        0x1c0ee2000 -         0x1c0f2ecdf UserNotifications arm64e  <3eff4f6fe413381e94d7b19622084702> /System/Library/Frameworks/UserNotifications.framework/UserNotifications
+        0x1c4251000 -         0x1c42975ff libdispatch.dylib arm64e  <49c0cd3ea6963b11ba925755f0c3c6e3> /usr/lib/system/libdispatch.dylib
+        0x1e90d6000 -         0x1e90e24ef libsystem_pthread.dylib arm64e  <34b44744bc64386eab90eee86b23ac46> /usr/lib/system/libsystem_pthread.dylib
+        0x22f710000 -         0x22f7187bf GraphicsServices arm64e  <411165e2ee8e380eb2549977273971e3> /System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices
+        0x238d80000 -         0x238dbbb1f libsystem_kernel.dylib arm64e  <18665b3f6d5133abb9e963062200ec42> /usr/lib/system/libsystem_kernel.dylib
+        0x2aa671000 -         0x2aa679433 libsystem_platform.dylib arm64e  <3edb2c1dbf7439f3a9f6b8c78bd66dd5> /usr/lib/system/libsystem_platform.dylib
+
+EOF
