@@ -6,7 +6,7 @@ workflows:
     integrations:
       # Must match the name you gave the App Store Connect API key in
       # Codemagic → Team settings → Integrations → Developer Portal.
-      app_store_connect: HabitQuest ASC
+      app_store_connect: Habit Quest
     environment:
       ios_signing:
         distribution_type: app_store
