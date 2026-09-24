@@ -1,0 +1,61 @@
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      # Must match the name you gave the App Store Connect API key in
+      # Codemagic → Team settings → Integrations → Developer Portal.
+      app_store_connect: HabitQuest ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: uk.habitquest.app
+      groups:
+        # Holds SUPABASE_URL and SUPABASE_ANON_KEY (see "Write .env" below).
+        - habitquest_env
+      vars:
+        XCODE_WORKSPACE: HabitQuest.xcworkspace
+        XCODE_SCHEME: HabitQuest
+        # App Store Connect → your app → App Information → Apple ID (a number).
+        APP_STORE_APPLE_ID: "REPLACE_ME"
+      node: 22
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Write .env from Codemagic variables
+        script: |
+          # .env is gitignored. A build without it launches straight into the
+          # "Configuration missing" screen, so refuse to build instead.
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_URL / SUPABASE_ANON_KEY missing from the habitquest_env group"
+            exit 1
+          fi
+          cat > "$CM_BUILD_DIR/.env" <<EOF
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          EOF
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Install CocoaPods dependencies
+        script: cd ios && pod install --repo-update
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd "$CM_BUILD_DIR/ios"
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID")
+          agvtool new-version -all $((LATEST + 1))
+      - name: Build ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/ios/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
