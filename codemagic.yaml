@@ -5,8 +5,8 @@ workflows:
     instance_type: mac_mini_m2
     integrations:
       # Must match the name you gave the App Store Connect API key in
-      # Codemagic → Team settings → Integrations → Developer Portal.
-      app_store_connect: Habit Quest
+      # Codemagic → Settings → Integrations → Developer Portal → Manage keys.
+      app_store_connect: HabitQuest
     environment:
       groups:
         # Holds SUPABASE_URL, SUPABASE_ANON_KEY and CERTIFICATE_PRIVATE_KEY.
