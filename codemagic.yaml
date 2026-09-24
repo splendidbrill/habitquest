@@ -41,7 +41,7 @@ workflows:
           # Creates the App Store certificate and profile on first run (signed
           # with CERTIFICATE_PRIVATE_KEY), then reuses them on later runs.
           keychain initialize
-          app-store-connect fetch-signing-files "uk.habitquest.app" --type IOS_APP_STORE --certificate-key "$CERTIFICATE_PRIVATE_KEY" --create
+          app-store-connect fetch-signing-files "uk.habitquest.app" --type IOS_APP_STORE --certificate-key=@env:CERTIFICATE_PRIVATE_KEY --create
           keychain add-certificates
           xcode-project use-profiles
       - name: Increment build number
